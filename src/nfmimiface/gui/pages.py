@@ -3,7 +3,7 @@
 Widgets get object names (title, caption, primary, ...) that theme.py styles.
 """
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEasingCurve, Qt, QVariantAnimation
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from nfmimiface.config import Side
@@ -104,12 +104,22 @@ class ImitatePage(Page):
 
 
 class FeedbackPage(Page):
+    """The score counts up from 0; the message appears when it reaches the score."""
+
+    COUNT_UP_MS = 800
+
     def __init__(self, side: Side) -> None:
         super().__init__("次へ")
         self.stimulus = ImageView()
         self.face = ImageView()
         self.score = _label("score")
         self.message = _label("message")
+        self._message_text = ""
+        self._count_up = QVariantAnimation(self)
+        self._count_up.setDuration(self.COUNT_UP_MS)
+        self._count_up.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._count_up.valueChanged.connect(lambda value: self.show_score(float(value)))
+        self._count_up.finished.connect(lambda: self.message.setText(self._message_text))
         self.column.addLayout(
             _side_by_side(
                 _captioned(self.stimulus, "お手本"), _captioned(self.face, "あなた"), side
@@ -123,8 +133,13 @@ class FeedbackPage(Page):
     def show_trial(self, trial: TrialResult) -> None:
         self.stimulus.set_image(trial.stimulus.image)
         self.face.set_image(trial.face)
-        self.show_score(trial.score)
-        self.message.setText(trial.message)
+        self._message_text = trial.message
+        self.message.setText(" ")  # keeps the line's height, so nothing moves when it appears
+        self._count_up.stop()
+        self._count_up.setStartValue(0.0)
+        self._count_up.setEndValue(trial.score)
+        self.show_score(0.0)
+        self._count_up.start()
 
     def show_score(self, score: float) -> None:
         self.score.setText(
