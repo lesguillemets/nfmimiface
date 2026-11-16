@@ -19,3 +19,11 @@ def load_rgb(path: Path) -> RGBImage:
     if bgr is None:
         raise ValueError(f"cannot read image: {path}")
     return cast(RGBImage, cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+
+
+def save_png(path: Path, image: RGBImage) -> None:
+    # imencode + tofile instead of cv2.imwrite, for the same reason as in load_rgb
+    ok, buffer = cv2.imencode(".png", cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+    if not ok:
+        raise ValueError(f"cannot encode image for {path}")
+    buffer.tofile(path)
