@@ -4,7 +4,7 @@ See `project.md` for the requirements and terminology (experiment, session, tria
 
 ## Modules
 
-All under `src/nfmimiface/`. Only the GUI (to be written) imports Qt; everything else is
+All under `src/nfmimiface/`. Only `app.py` and `gui/` import Qt; everything else is
 plain Python and can be tested without a camera or a window.
 
 | Module | Contents |
@@ -16,6 +16,11 @@ plain Python and can be tested without a camera or a window.
 | `scoring.py` | `Scorer` type, `@register`, `make_scorer`, the scorers themselves |
 | `experiment.py` | `Experiment`, `Session`, steps (`Imitate`, `Feedback`, `Closing`), `TrialResult` |
 | `show_blendshapes.py` | Command-line tool `nfmimiface-blendshapes` |
+| `app.py` | Entry point `nfmimiface`: loads everything (errors → dialog), opens the window |
+| `gui/camera.py` | `FrameSource` threads emitting mirrored RGB frames: `Camera`, `StillImage` (`--fake-camera`) |
+| `gui/widgets.py` | `ImageView` (aspect-preserving image), `to_qimage` |
+| `gui/pages.py` | `StartPage`, `ImitatePage`, `FeedbackPage`, `ClosingPage`: display only |
+| `gui/main_window.py` | `MainWindow`: holds the session, shows the page for `session.step`, handles buttons and Space/Enter |
 
 ## How the classes relate
 
@@ -44,7 +49,7 @@ Step = Imitate(stimulus) | Feedback(trial: index into Session.trials) | Closing(
   is loaded and the camera is checked.
 - `Session` is created when 「スタート」 is pressed and discarded after the closing page.
 - Steps are plain data. The GUI shows one page per step type, and the session tells it
-  which step is current.
+  which step is current: `MainWindow._show_step()` matches on `session.step`.
 
 ## One session
 
