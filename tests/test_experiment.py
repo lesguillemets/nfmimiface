@@ -64,6 +64,7 @@ def test_session_records_trials(experiment: Experiment) -> None:
     record = json.loads((session.dir / f"{session.id}.json").read_text(encoding="utf-8"))
     assert record["session_id"] == session.id
     assert record["trials"][0]["score"] == trial.score
+    assert len(record["stimuli"]) == 2 and len(record["stimuli"][0]["md5"]) == 32
 
 
 def test_no_face_records_nothing(experiment: Experiment) -> None:

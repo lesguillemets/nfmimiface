@@ -1,5 +1,7 @@
 """Experiment flow: stimuli, steps and sessions. No GUI code here.
 
+See docs/architecture.md for how the classes relate.
+
 A session is a list of steps built by `Experiment.build_steps()`. The GUI shows one page
 per step type and calls `Session` methods. To add a kind of step (e.g. capturing a
 neutral face before the task): add a step class, include it in `Step`, emit it from
@@ -9,6 +11,7 @@ Camera frames passed in here are RGB and already mirrored (as displayed), so the
 crop that is analysed and saved is what the participant saw.
 """
 
+import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime
@@ -25,6 +28,7 @@ from nfmimiface.scoring import make_scorer
 @dataclass(frozen=True)
 class Stimulus:
     path: Path  # as written in the TOML
+    md5: str  # of the image file, to tell apart different images saved under the same name
     instruction: str
     image: RGBImage
     blendshapes: Blendshapes
@@ -109,7 +113,8 @@ class Experiment:
         blendshapes = self.analyzer.blendshapes(image)
         if blendshapes is None:
             raise ValueError(f"no face detected in stimulus {config.path}")
-        return Stimulus(config.path, config.instruction, image, blendshapes)
+        md5 = hashlib.md5(config.resolved_path.read_bytes()).hexdigest()
+        return Stimulus(config.path, md5, config.instruction, image, blendshapes)
 
 
 class Session:
@@ -173,6 +178,7 @@ class Session:
             "started_at": self.started_at.isoformat(timespec="seconds"),
             "scorer": {"name": config.scorer.name, "params": config.scorer.params},
             "crop": {"x": self.crop.x, "y": self.crop.y, "w": self.crop.w, "h": self.crop.h},
+            "stimuli": [{"path": s.path.as_posix(), "md5": s.md5} for s in self.experiment.stimuli],
             "trials": [
                 {
                     "stimulus": t.stimulus.path.as_posix(),
