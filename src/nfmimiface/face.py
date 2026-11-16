@@ -1,6 +1,6 @@
 """Face analysis with mediapipe's FaceLandmarker: face box and blendshape scores."""
 
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
@@ -36,6 +36,11 @@ BLENDSHAPE_NAMES: tuple[str, ...] = (
 _INDEX = {name: i for i, name in enumerate(BLENDSHAPE_NAMES)}
 
 
+def blendshape_indices(names: Iterable[str]) -> npt.NDArray[np.intp]:
+    """Indices of `names` in BLENDSHAPE_NAMES. Raises KeyError on an unknown name."""
+    return np.array([_INDEX[n] for n in names], dtype=np.intp)
+
+
 class Blendshapes(Mapping[str, float]):
     """Immutable mapping of blendshape name -> score (0..1), in BLENDSHAPE_NAMES order."""
 
@@ -58,12 +63,9 @@ class Blendshapes(Mapping[str, float]):
     def __repr__(self) -> str:
         return f"Blendshapes({dict(self)!r})"
 
-    def by_index(self, i: int) -> float:
-        return float(self._scores[i])
-
     @property
     def array(self) -> npt.NDArray[np.float64]:
-        """Read-only array of scores, in BLENDSHAPE_NAMES order."""
+        """Read-only array of scores, in BLENDSHAPE_NAMES order (see blendshape_indices)."""
         return self._scores
 
 

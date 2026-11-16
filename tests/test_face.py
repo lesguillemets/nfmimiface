@@ -2,13 +2,26 @@ import numpy as np
 import pytest
 
 from nfmimiface.constants import MODEL_PATH
-from nfmimiface.face import BLENDSHAPE_NAMES, Blendshapes, FaceAnalyzer, Rect, crop_rect
+from nfmimiface.face import (
+    BLENDSHAPE_NAMES,
+    Blendshapes,
+    FaceAnalyzer,
+    Rect,
+    blendshape_indices,
+    crop_rect,
+)
 
 
-def test_blendshapes_access_by_index_and_name() -> None:
+def test_blendshapes_by_name() -> None:
     b = Blendshapes(np.arange(len(BLENDSHAPE_NAMES)) / 100)
-    assert b.by_index(25) == b["jawOpen"] == 0.25
+    assert b["jawOpen"] == 0.25
     assert list(b) == list(BLENDSHAPE_NAMES)
+
+
+def test_blendshape_indices() -> None:
+    assert list(blendshape_indices(["_neutral", "jawOpen"])) == [0, 25]
+    with pytest.raises(KeyError):
+        blendshape_indices(["_nuetral"])
 
 
 def test_crop_rect_centred_with_aspect() -> None:
