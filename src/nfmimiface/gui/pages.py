@@ -1,7 +1,10 @@
-"""One page per step type (plus the start page). Pages only display; MainWindow drives them."""
+"""One page per step type (plus the start page). Pages only display; MainWindow drives them.
+
+Widgets get object names (title, card, primary, ...) that theme.py styles.
+"""
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from nfmimiface.config import Side
 from nfmimiface.experiment import Stimulus, TrialResult
@@ -14,28 +17,39 @@ class Page(QWidget):
     def __init__(self, button_text: str) -> None:
         super().__init__()
         self.button = QPushButton(button_text)
+        self.button.setObjectName("primary")
         # No focus: otherwise a focused button would also react to Space by itself.
         self.button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.column = QVBoxLayout(self)
+        self.column.setContentsMargins(48, 32, 48, 32)
+        self.column.setSpacing(16)
 
 
-def _label(text: str = "") -> QLabel:
+def _label(role: str, text: str = "") -> QLabel:
     label = QLabel(text)
+    label.setObjectName(role)
     label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     label.setWordWrap(True)
     return label
 
 
-def _captioned(caption: str, view: ImageView) -> QVBoxLayout:
-    column = QVBoxLayout()
-    column.addWidget(_label(caption))
+def _card(view: ImageView, caption: str | None = None) -> QFrame:
+    card = QFrame()
+    card.setObjectName("card")
+    column = QVBoxLayout(card)
+    column.setContentsMargins(16, 12, 16, 16)
+    if caption is not None:
+        column.addWidget(_label("caption", caption))
     column.addWidget(view, 1)
-    return column
+    return card
 
 
-def _side_by_side(stimulus: QVBoxLayout, face: QVBoxLayout, side: Side) -> QHBoxLayout:
+def _side_by_side(stimulus: QWidget, face: QWidget, side: Side) -> QHBoxLayout:
     row = QHBoxLayout()
-    for column in (stimulus, face) if side == "left" else (face, stimulus):
-        row.addLayout(column, 1)
+    row.setSpacing(24)
+    for widget in (stimulus, face) if side == "left" else (face, stimulus):
+        row.addWidget(widget, 1)
     return row
 
 
@@ -43,13 +57,14 @@ class StartPage(Page):
     def __init__(self, title: str) -> None:
         super().__init__("スタート")
         self.live = ImageView()
-        self.status = _label()
-        layout = QVBoxLayout(self)
-        layout.addWidget(_label(title))
-        layout.addWidget(self.live, 1)
-        layout.addWidget(_label("カメラの正面に座って、「スタート」を押してください。"))
-        layout.addWidget(self.status)
-        layout.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.status = _label("status")
+        self.column.addWidget(_label("title", title))
+        self.column.addWidget(_card(self.live), 1)
+        self.column.addWidget(
+            _label("hint", "カメラの正面に座って、「スタート」を押してください。")
+        )
+        self.column.addWidget(self.status)
+        self.column.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
 
     def reset(self) -> None:
         self.status.clear()
@@ -63,20 +78,16 @@ class StartPage(Page):
 class ImitatePage(Page):
     def __init__(self, side: Side) -> None:
         super().__init__("完了")
-        self.instruction = _label()
+        self.instruction = _label("instruction")
         self.stimulus = ImageView()
         self.live = ImageView()
-        self.status = _label()
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.instruction)
-        layout.addLayout(
-            _side_by_side(
-                _captioned("お手本", self.stimulus), _captioned("あなた", self.live), side
-            ),
-            1,
+        self.status = _label("status")
+        self.column.addWidget(self.instruction)
+        self.column.addLayout(
+            _side_by_side(_card(self.stimulus, "お手本"), _card(self.live, "あなた"), side), 1
         )
-        layout.addWidget(self.status)
-        layout.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.column.addWidget(self.status)
+        self.column.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
 
     def show_stimulus(self, stimulus: Stimulus) -> None:
         self.instruction.setText(stimulus.instruction)
@@ -95,31 +106,32 @@ class FeedbackPage(Page):
         super().__init__("次へ")
         self.stimulus = ImageView()
         self.face = ImageView()
-        self.score = _label()
-        self.message = _label()
-        layout = QVBoxLayout(self)
-        layout.addLayout(
-            _side_by_side(
-                _captioned("お手本", self.stimulus), _captioned("あなた", self.face), side
-            ),
-            1,
+        self.score = _label("score")
+        self.message = _label("message")
+        self.column.addLayout(
+            _side_by_side(_card(self.stimulus, "お手本"), _card(self.face, "あなた"), side), 1
         )
-        layout.addWidget(self.score)
-        layout.addWidget(self.message)
-        layout.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.column.addWidget(self.score)
+        self.column.addWidget(self.message)
+        self.column.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
 
     def show_trial(self, trial: TrialResult) -> None:
         self.stimulus.set_image(trial.stimulus.image)
         self.face.set_image(trial.face)
-        self.score.setText(f"{trial.score:.1f} 点")
+        self.show_score(trial.score)
         self.message.setText(trial.message)
+
+    def show_score(self, score: float) -> None:
+        self.score.setText(
+            f'<span style="font-size: 64pt; font-weight: 800;">{score:.1f}</span>'
+            '<span style="font-size: 28pt; font-weight: 700;"> 点</span>'
+        )
 
 
 class ClosingPage(Page):
     def __init__(self, message: str) -> None:
         super().__init__("おわる")
-        layout = QVBoxLayout(self)
-        layout.addStretch(1)
-        layout.addWidget(_label(message))
-        layout.addStretch(1)
-        layout.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.column.addStretch(1)
+        self.column.addWidget(_label("closing", message))
+        self.column.addStretch(1)
+        self.column.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
