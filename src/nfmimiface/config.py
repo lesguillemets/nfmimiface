@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from .constants import PROJECT_ROOT
+from nfmimiface.constants import PROJECT_ROOT
 
 type Side = Literal["left", "right"]
 
@@ -53,14 +53,7 @@ class ExperimentConfig:
     camera: CameraConfig
     scorer: ScorerConfig
     stimuli: tuple[StimulusConfig, ...]
-    messages: tuple[ScoreMessage, ...]  # sorted by min_score, highest first
-
-    def message_for(self, score: float) -> str:
-        """Text of the message with the highest threshold not above `score`."""
-        for m in self.messages:
-            if score >= m.min_score:
-                return m.text
-        return self.messages[-1].text
+    messages: tuple[ScoreMessage, ...]
 
 
 def load_config(path: Path) -> ExperimentConfig:
@@ -75,14 +68,7 @@ def load_config(path: Path) -> ExperimentConfig:
         StimulusConfig(path=Path(s["path"]), instruction=s["instruction"]) for s in raw["stimuli"]
     )
     messages = tuple(
-        sorted(
-            (
-                ScoreMessage(min_score=float(m["min_score"]), text=m["text"])
-                for m in raw["messages"]
-            ),
-            key=lambda m: m.min_score,
-            reverse=True,
-        )
+        ScoreMessage(min_score=float(m["min_score"]), text=m["text"]) for m in raw["messages"]
     )
     if not stimuli or not messages:
         raise ValueError("at least one [[stimuli]] and one [[messages]] entry are required")
