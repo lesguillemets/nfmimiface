@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-nfmimiface = "nfmimiface:main"
+nfmimiface = "nfmimiface.app:main"
 nfmimiface-blendshapes = "nfmimiface.show_blendshapes:main"
 
 [build-system]
