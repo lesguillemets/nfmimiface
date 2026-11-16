@@ -1,10 +1,10 @@
 """One page per step type (plus the start page). Pages only display; MainWindow drives them.
 
-Widgets get object names (title, card, primary, ...) that theme.py styles.
+Widgets get object names (title, caption, primary, ...) that theme.py styles.
 """
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from nfmimiface.config import Side
 from nfmimiface.experiment import Stimulus, TrialResult
@@ -34,18 +34,17 @@ def _label(role: str, text: str = "") -> QLabel:
     return label
 
 
-def _card(view: ImageView, caption: str | None = None) -> QFrame:
-    card = QFrame()
-    card.setObjectName("card")
-    column = QVBoxLayout(card)
-    column.setContentsMargins(16, 12, 16, 16)
-    if caption is not None:
-        column.addWidget(_label("caption", caption))
-    column.addWidget(view, 1)
-    return card
+def _captioned(view: ImageView, caption: str) -> QWidget:
+    widget = QWidget()
+    column = QVBoxLayout(widget)
+    column.setContentsMargins(0, 0, 0, 0)
+    column.addWidget(_label("caption", caption))
+    column.addWidget(view, 1)  # the image fills the remaining height
+    return widget
 
 
 def _side_by_side(stimulus: QWidget, face: QWidget, side: Side) -> QHBoxLayout:
+    """Two columns of equal width, the stimulus on `side`."""
     row = QHBoxLayout()
     row.setSpacing(24)
     for widget in (stimulus, face) if side == "left" else (face, stimulus):
@@ -59,7 +58,7 @@ class StartPage(Page):
         self.live = ImageView()
         self.status = _label("status")
         self.column.addWidget(_label("title", title))
-        self.column.addWidget(_card(self.live), 1)
+        self.column.addWidget(self.live, 1)
         self.column.addWidget(
             _label("hint", "カメラの正面に座って、「スタート」を押してください。")
         )
@@ -84,7 +83,10 @@ class ImitatePage(Page):
         self.status = _label("status")
         self.column.addWidget(self.instruction)
         self.column.addLayout(
-            _side_by_side(_card(self.stimulus, "お手本"), _card(self.live, "あなた"), side), 1
+            _side_by_side(
+                _captioned(self.stimulus, "お手本"), _captioned(self.live, "あなた"), side
+            ),
+            1,
         )
         self.column.addWidget(self.status)
         self.column.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -109,7 +111,10 @@ class FeedbackPage(Page):
         self.score = _label("score")
         self.message = _label("message")
         self.column.addLayout(
-            _side_by_side(_card(self.stimulus, "お手本"), _card(self.face, "あなた"), side), 1
+            _side_by_side(
+                _captioned(self.stimulus, "お手本"), _captioned(self.face, "あなた"), side
+            ),
+            1,
         )
         self.column.addWidget(self.score)
         self.column.addWidget(self.message)

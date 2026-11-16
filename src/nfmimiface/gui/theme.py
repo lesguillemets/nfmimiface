@@ -1,7 +1,7 @@
 """Look and feel: colours and fonts (`Theme`) applied through one Qt stylesheet.
 
 To change the look, define another `Theme` and pass it to `apply_theme()` in app.py.
-Widgets are styled by object name (`QLabel#title`, `QFrame#card`, ...), set in pages.py.
+Widgets are styled by object name (`QLabel#title`, `QPushButton#primary`, ...), set in pages.py.
 """
 
 from dataclasses import asdict, dataclass
@@ -14,8 +14,6 @@ from PySide6.QtWidgets import QApplication
 @dataclass(frozen=True)
 class Theme:
     background: str
-    card: str
-    border: str
     text: str
     subtle_text: str
     accent: str  # main buttons and the score
@@ -27,8 +25,6 @@ class Theme:
 
 LIGHT = Theme(
     background="#faf6f0",
-    card="#ffffff",
-    border="#ebe4d8",
     text="#2e2a25",
     subtle_text="#857c70",
     accent="#f26b4f",
@@ -52,12 +48,6 @@ QLabel#status { font-weight: 700; color: $warning; }
 QLabel#score { color: $accent; }
 QLabel#message { font-size: 28pt; font-weight: 700; }
 QLabel#closing { font-size: 34pt; font-weight: 700; }
-
-QFrame#card {
-    background-color: $card;
-    border: 1px solid $border;
-    border-radius: 24px;
-}
 
 QPushButton#primary {
     background-color: $accent;
