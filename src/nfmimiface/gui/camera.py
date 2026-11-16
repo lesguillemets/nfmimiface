@@ -32,6 +32,12 @@ class Camera(FrameSource):
             raise RuntimeError(f"カメラ {config.index} を開けませんでした。")
         self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, config.width)
         self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, config.height)
+        # The camera picks the closest mode it supports; FPS is as reported by the driver.
+        w = int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = self._capture.get(cv2.CAP_PROP_FPS)
+        requested = f"{config.width}x{config.height}"
+        print(f"camera {config.index}: {w}x{h} @ {fps:g} fps (requested {requested})")
 
     def run(self) -> None:
         while not self.isInterruptionRequested():
