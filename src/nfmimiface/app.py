@@ -12,6 +12,7 @@ from nfmimiface.experiment import Experiment
 from nfmimiface.face import FaceAnalyzer
 from nfmimiface.gui.camera import Camera, FrameSource, StillImage
 from nfmimiface.gui.main_window import MainWindow
+from nfmimiface.gui.theme import apply_theme
 from nfmimiface.images import load_rgb
 
 
@@ -24,6 +25,7 @@ def main() -> None:
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
+    apply_theme(app)
     try:
         config = load_config(args.experiment)
         analyzer = FaceAnalyzer()
