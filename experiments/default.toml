@@ -1,0 +1,32 @@
+name = "表情まねチャレンジ"
+machine_name = "pc1"           # prepended to session IDs to tell machines apart
+stimulus_side = "left"          # "left" | "right"
+crop_scale = 2.0                # crop size relative to the detected face box
+closing_message = "参加してくれてありがとうございました！"
+
+[camera]
+index = 0
+width = 1280
+height = 720
+
+[scorer]
+name = "cosine"
+# params = { ... }
+
+# One trial per entry, in this order. Paths are relative to the project root.
+[[stimuli]]
+path = "stimuli/face01.jpg"
+instruction = "お手本の写真と同じ表情をしてみてください。"
+
+# The message with the highest min_score not above the score is shown.
+[[messages]]
+min_score = 80.0
+text = "すばらしい！ほぼ完璧です。"
+
+[[messages]]
+min_score = 60.0
+text = "いい感じです！"
+
+[[messages]]
+min_score = 0.0
+text = "もう少し！表情のポイントをよく見てみましょう。"

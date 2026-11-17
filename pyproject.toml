@@ -14,7 +14,8 @@ dependencies = [
 ]
 
 [project.scripts]
-nfmimiface = "nfmimiface:main"
+nfmimiface = "nfmimiface.app:main"
+nfmimiface-blendshapes = "nfmimiface.show_blendshapes:main"
 
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14.0"]
@@ -23,5 +24,21 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pyright>=1.1.414",
+    "pytest>=9.2.0",
     "ruff>=0.17.3",
 ]
+
+[tool.uv]
+# mediapipe depends on opencv-contrib-python, which installs the same `cv2` package as
+# opencv-python-headless (and bundles its own Qt on Linux, which conflicts with PySide6).
+# mediapipe's FaceLandmarker does not need cv2, so we keep only the headless build.
+override-dependencies = ["opencv-contrib-python; sys_platform == 'never'"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
