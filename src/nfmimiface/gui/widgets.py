@@ -1,7 +1,7 @@
 """Small reusable widgets."""
 
 import numpy as np
-from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtCore import Property, QPoint, QRect, Qt
 from PySide6.QtGui import QImage, QPainter, QPainterPath, QPaintEvent
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
@@ -16,13 +16,25 @@ def to_qimage(image: RGBImage) -> QImage:
 
 
 class ImageView(QWidget):
-    """Shows an image scaled to fit, keeping its aspect ratio, centred, with rounded corners."""
+    """Shows an image scaled to fit, keeping its aspect ratio, centred.
 
-    def __init__(self, radius: float = 14, parent: QWidget | None = None) -> None:
+    The corner radius is set by the theme's stylesheet (`qproperty-radius`).
+    """
+
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._image: QImage | None = None
-        self._radius = radius
+        self._radius = 0.0
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    def _get_radius(self) -> float:
+        return self._radius
+
+    def _set_radius(self, radius: float) -> None:
+        self._radius = radius
+        self.update()
+
+    radius = Property(float, _get_radius, _set_radius)
 
     def set_image(self, image: RGBImage | None) -> None:
         self._image = None if image is None else to_qimage(image)

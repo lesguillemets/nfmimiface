@@ -21,6 +21,8 @@ class Theme:
     accent_pressed: str
     on_accent: str  # text on accent-coloured buttons
     warning: str  # "no face detected" messages
+    button_radius: int  # px; half the button height (36) makes a pill
+    image_radius: int  # px
 
 
 LIGHT = Theme(
@@ -32,6 +34,8 @@ LIGHT = Theme(
     accent_pressed="#d9583e",
     on_accent="#ffffff",
     warning="#c2410c",
+    button_radius=36,
+    image_radius=14,
 )
 
 DARK = Theme(  # navy #00205B with a gold accent
@@ -43,6 +47,8 @@ DARK = Theme(  # navy #00205B with a gold accent
     accent_pressed="#e6a817",
     on_accent="#00205b",
     warning="#ff9a7a",
+    button_radius=4,
+    image_radius=4,
 )
 
 THEMES = {"light": LIGHT, "dark": DARK}
@@ -52,6 +58,8 @@ FONT_FAMILIES = ["Noto Sans CJK JP", "Noto Sans JP"]
 _STYLESHEET = Template("""
 QMainWindow, QDialog { background-color: $background; }
 QWidget { color: $text; font-size: 18pt; }
+
+ImageView { qproperty-radius: $image_radius; }
 
 QLabel#title { font-size: 32pt; font-weight: 700; }
 QLabel#instruction { font-size: 26pt; font-weight: 700; }
@@ -72,7 +80,7 @@ QPushButton#primary {
     background-color: $accent;
     color: $on_accent;
     border: none;
-    border-radius: 36px;
+    border-radius: ${button_radius}px;
     min-height: 72px;
     min-width: 280px;
     padding: 0 48px;
