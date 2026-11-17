@@ -40,17 +40,17 @@ LIGHT = Theme(  # cool paper white with the navy as accent
     radius=3,
 )
 
-DARK = Theme(  # navy #00205B with a muted gold accent
-    background="#00205b",
-    text="#eef2f9",
-    subtle_text="#9fb3da",
-    surface="#0a2c6b",
-    border="#1f4285",
-    accent="#e9b949",
-    accent_hover="#f0c96b",
-    accent_pressed="#cf9f32",
-    on_accent="#00205b",
-    warning="#ff9a7a",
+DARK = Theme(  # near-black with a muted gold accent
+    background="#0b1019",
+    text="#e9edf4",
+    subtle_text="#8f9bb2",
+    surface="#141b28",
+    border="#253046",
+    accent="#d4a437",
+    accent_hover="#deb453",
+    accent_pressed="#b98c27",
+    on_accent="#0b1019",
+    warning="#ff8f73",
     radius=3,
 )
 
