@@ -174,13 +174,15 @@ def _both_sides(name: str) -> tuple[str, ...]:
 
 
 # FACS action units approximated by blendshapes (both sides averaged).
+# MediaPipe's cheekSquint stays near 0 even in broad smiles; the cheek raiser (AU6) shows up
+# as eyeSquint instead. So eyeSquint stands for AU6, and the lid tightener (AU7), which
+# MediaPipe cannot tell apart from it, is left out.
 ACTION_UNITS: dict[int, tuple[str, ...]] = {
     1: _both_sides("browInnerUp"),  # inner brow raiser
     2: _both_sides("browOuterUp"),  # outer brow raiser
     4: _both_sides("browDown"),  # brow lowerer
     5: _both_sides("eyeWide"),  # upper lid raiser
-    6: _both_sides("cheekSquint"),  # cheek raiser
-    7: _both_sides("eyeSquint"),  # lid tightener
+    6: _both_sides("eyeSquint"),  # cheek raiser (see above)
     9: _both_sides("noseSneer"),  # nose wrinkler
     10: _both_sides("mouthUpperUp"),  # upper lip raiser
     12: _both_sides("mouthSmile"),  # lip corner puller
@@ -196,7 +198,7 @@ EMOTIONS: dict[str, tuple[int, ...]] = {
     "sadness": (1, 4, 15),
     "surprise": (1, 2, 5, 26),
     "fear": (1, 2, 4, 5, 20, 26),
-    "anger": (4, 7, 24),
+    "anger": (4, 24),
     "disgust": (9, 10),
 }
 
@@ -222,5 +224,26 @@ def emotions() -> Scorer:
         p, t = profile(participant), profile(target)
         union = np.maximum(p, t).sum()
         return float(100 * np.minimum(p, t).sum() / union) if union > 0 else 0.0
+
+    return score
+
+
+@register("shape_strength")
+def shape_strength(strength_weight: float = 0.5, exclude: Sequence[str] = NON_EXPRESSIVE) -> Scorer:
+    """100 × cosine × (smaller norm / larger norm) ** strength_weight.
+
+    Separates *which* movements (cosine: the direction of the vector) from *how strongly*
+    (the ratio of the vectors' lengths). With the default 0.5, a half-strength imitation
+    of the right movements scores 71; 0 ignores strength (plain cosine), 1 is strict.
+    A quiet participant scores low, since its vector is short.
+    """
+    keep = _kept(exclude)
+
+    def score(participant: Blendshapes, target: Blendshapes) -> float:
+        p, t = participant.array[keep], target.array[keep]
+        np_, nt = np.linalg.norm(p), np.linalg.norm(t)
+        if np_ == 0 or nt == 0:
+            return 0.0
+        return float(100 * (p @ t / (np_ * nt)) * (min(np_, nt) / max(np_, nt)) ** strength_weight)
 
     return score

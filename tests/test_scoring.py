@@ -34,7 +34,9 @@ def test_misspelled_blendshape_name_fails_at_creation() -> None:
         make_scorer(ScorerConfig("cosine", {"exclude": ["_nuetral"]}))
 
 
-@pytest.mark.parametrize("name", ["cosine", "pearson", "overlap", "regions", "emotions"])
+@pytest.mark.parametrize(
+    "name", ["cosine", "pearson", "overlap", "shape_strength", "regions", "emotions"]
+)
 def test_every_scorer_gives_100_for_identical_faces(name: str) -> None:
     b = random_blendshapes()
     assert make_scorer(ScorerConfig(name))(b, b) == pytest.approx(100)
@@ -52,3 +54,9 @@ def test_either_side_accepts_the_other_side() -> None:
     assert make_scorer(ScorerConfig("overlap"))(right_smirk, left_smirk) == 0
     either = make_scorer(ScorerConfig("overlap", {"either_side": True}))
     assert either(right_smirk, left_smirk) == pytest.approx(100)
+
+
+def test_shape_strength_half_strength() -> None:
+    b = random_blendshapes()
+    scorer = make_scorer(ScorerConfig("shape_strength"))
+    assert scorer(Blendshapes(b.array / 2), b) == pytest.approx(100 * 0.5**0.5)
