@@ -82,7 +82,7 @@ sessions on that machine.
 ## Extension points
 
 - **New scorer:** see the docstring of `scoring.py`, then select it with `[scorer] name`
-  in the TOML.
+  in the TOML. The candidates and their behaviour: [scorers.md](scorers.md).
 - **Different order (e.g. shuffling):** change `Experiment.build_steps()`.
 - **New kind of step** (e.g. a neutral face before the task): add a step class to
   `experiment.py`, include it in `Step`, emit it from `build_steps()`, and add a GUI page.
