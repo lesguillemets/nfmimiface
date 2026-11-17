@@ -1,6 +1,6 @@
 """Look and feel: colours and fonts (`Theme`) applied through one Qt stylesheet.
 
-To change the look, define another `Theme` and pass it to `apply_theme()` in app.py.
+To add a look, define another `Theme` and list it in `THEMES` (chosen with `--theme`).
 Widgets are styled by object name (`QLabel#title`, `QPushButton#primary`, ...), set in pages.py.
 """
 
@@ -34,10 +34,23 @@ LIGHT = Theme(
     warning="#c2410c",
 )
 
+DARK = Theme(  # navy #00205B with a gold accent
+    background="#00205b",
+    text="#f3f6fc",
+    subtle_text="#9fb3da",
+    accent="#ffc53d",
+    accent_hover="#ffd36e",
+    accent_pressed="#e6a817",
+    on_accent="#00205b",
+    warning="#ff9a7a",
+)
+
+THEMES = {"light": LIGHT, "dark": DARK}
+
 FONT_FAMILIES = ["Noto Sans CJK JP", "Noto Sans JP"]
 
 _STYLESHEET = Template("""
-QMainWindow { background-color: $background; }
+QMainWindow, QDialog { background-color: $background; }
 QWidget { color: $text; font-size: 18pt; }
 
 QLabel#title { font-size: 32pt; font-weight: 700; }
@@ -49,6 +62,12 @@ QLabel#score { color: $accent; }
 QLabel#message { font-size: 28pt; font-weight: 700; }
 QLabel#closing { font-size: 34pt; font-weight: 700; }
 
+QPushButton {  /* plain buttons, e.g. OK in the error dialog */
+    background-color: transparent;
+    border: 2px solid $subtle_text;
+    border-radius: 8px;
+    padding: 6px 24px;
+}
 QPushButton#primary {
     background-color: $accent;
     color: $on_accent;

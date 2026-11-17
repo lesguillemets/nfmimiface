@@ -12,7 +12,7 @@ from nfmimiface.experiment import Experiment
 from nfmimiface.face import FaceAnalyzer
 from nfmimiface.gui.camera import Camera, FrameSource, StillImage
 from nfmimiface.gui.main_window import MainWindow
-from nfmimiface.gui.theme import apply_theme
+from nfmimiface.gui.theme import THEMES, apply_theme
 from nfmimiface.images import load_rgb
 
 
@@ -22,10 +22,11 @@ def main() -> None:
     parser.add_argument(
         "--fake-camera", type=Path, metavar="IMAGE", help="show IMAGE instead of the webcam"
     )
+    parser.add_argument("--theme", choices=THEMES, default="light")
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
-    apply_theme(app)
+    apply_theme(app, THEMES[args.theme])
     try:
         config = load_config(args.experiment)
         analyzer = FaceAnalyzer()
