@@ -41,6 +41,13 @@ def blendshape_indices(names: Iterable[str]) -> npt.NDArray[np.intp]:
     return np.array([_INDEX[n] for n in names], dtype=np.intp)
 
 
+def _swap_sides(name: str) -> str:
+    return name.replace("Left", "#").replace("Right", "Left").replace("#", "Right")
+
+
+_MIRROR = blendshape_indices(map(_swap_sides, BLENDSHAPE_NAMES))
+
+
 class Blendshapes(Mapping[str, float]):
     """Immutable mapping of blendshape name -> score (0..1), in BLENDSHAPE_NAMES order."""
 
@@ -67,6 +74,10 @@ class Blendshapes(Mapping[str, float]):
     def array(self) -> npt.NDArray[np.float64]:
         """Read-only array of scores, in BLENDSHAPE_NAMES order (see blendshape_indices)."""
         return self._scores
+
+    def mirrored(self) -> "Blendshapes":
+        """Left and Right swapped: (approximately) the blendshapes of the flipped image."""
+        return Blendshapes(self._scores[_MIRROR])
 
 
 @dataclass(frozen=True)

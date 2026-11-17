@@ -32,3 +32,23 @@ def test_unknown_scorer() -> None:
 def test_misspelled_blendshape_name_fails_at_creation() -> None:
     with pytest.raises(KeyError):
         make_scorer(ScorerConfig("cosine", {"exclude": ["_nuetral"]}))
+
+
+@pytest.mark.parametrize("name", ["cosine", "pearson", "overlap", "regions", "emotions"])
+def test_every_scorer_gives_100_for_identical_faces(name: str) -> None:
+    b = random_blendshapes()
+    assert make_scorer(ScorerConfig(name))(b, b) == pytest.approx(100)
+
+
+def test_overlap_counts_intensity() -> None:
+    b = random_blendshapes()
+    half = Blendshapes(b.array / 2)
+    assert make_scorer(ScorerConfig("overlap"))(half, b) == pytest.approx(50)
+
+
+def test_either_side_accepts_the_other_side() -> None:
+    left_smirk = Blendshapes([n == "mouthSmileLeft" for n in BLENDSHAPE_NAMES])
+    right_smirk = left_smirk.mirrored()
+    assert make_scorer(ScorerConfig("overlap"))(right_smirk, left_smirk) == 0
+    either = make_scorer(ScorerConfig("overlap", {"either_side": True}))
+    assert either(right_smirk, left_smirk) == pytest.approx(100)

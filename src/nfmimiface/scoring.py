@@ -34,6 +34,7 @@ Scores are kept unrounded; rounding is a display concern.
 from collections.abc import Callable, Sequence
 
 import numpy as np
+import numpy.typing as npt
 
 from nfmimiface.config import ScorerConfig
 from nfmimiface.face import BLENDSHAPE_NAMES, Blendshapes, blendshape_indices
@@ -42,6 +43,10 @@ type Scorer = Callable[[Blendshapes, Blendshapes], float]
 type ScorerFactory = Callable[..., Scorer]
 
 _REGISTRY: dict[str, ScorerFactory] = {}
+
+GAZE = tuple(n for n in BLENDSHAPE_NAMES if n.startswith("eyeLook"))
+# Not part of the expression: _neutral is a constant-ish bias term, eyeLook* is gaze direction.
+NON_EXPRESSIVE = ("_neutral", *GAZE)
 
 
 def register(name: str) -> Callable[[ScorerFactory], ScorerFactory]:
@@ -57,9 +62,19 @@ def register(name: str) -> Callable[[ScorerFactory], ScorerFactory]:
 
 
 def make_scorer(config: ScorerConfig) -> Scorer:
+    """The configured scorer. The extra param `either_side = true` makes any scorer
+    also try the participant's face mirrored and keep the better score, so imitating
+    a one-sided expression with either side of the face counts."""
     if config.name not in _REGISTRY:
         raise ValueError(f"unknown scorer {config.name!r}; available: {sorted(_REGISTRY)}")
-    return _REGISTRY[config.name](**config.params)
+    params = dict(config.params)
+    either_side = params.pop("either_side", False)
+    scorer = _REGISTRY[config.name](**params)
+    if not either_side:
+        return scorer
+    return lambda participant, target: max(
+        scorer(participant, target), scorer(participant.mirrored(), target)
+    )
 
 
 @register("cosine")
@@ -68,12 +83,144 @@ def cosine(exclude: Sequence[str] = ("_neutral",)) -> Scorer:
 
     Blendshape scores are non-negative, so the result is already within 0..100.
     """
-    keep = np.ones(len(BLENDSHAPE_NAMES), dtype=bool)
-    keep[blendshape_indices(exclude)] = False
+    keep = _kept(exclude)
 
     def score(participant: Blendshapes, target: Blendshapes) -> float:
         p, t = participant.array[keep], target.array[keep]
         norms = np.linalg.norm(p) * np.linalg.norm(t)
         return float(100 * p @ t / norms) if norms > 0 else 0.0
+
+    return score
+
+
+def _kept(exclude: Sequence[str]) -> npt.NDArray[np.bool_]:
+    """Mask of the blendshapes not in `exclude`."""
+    keep = np.ones(len(BLENDSHAPE_NAMES), dtype=bool)
+    keep[blendshape_indices(exclude)] = False
+    return keep
+
+
+@register("pearson")
+def pearson(exclude: Sequence[str] = NON_EXPRESSIVE) -> Scorer:
+    """100 × Pearson correlation (negative clipped to 0): cosine after subtracting each
+    face's mean, so a general level of activity matching does not count by itself."""
+    keep = _kept(exclude)
+
+    def score(participant: Blendshapes, target: Blendshapes) -> float:
+        p, t = participant.array[keep], target.array[keep]
+        p, t = p - p.mean(), t - t.mean()
+        norms = np.linalg.norm(p) * np.linalg.norm(t)
+        return float(100 * max(p @ t / norms, 0.0)) if norms > 0 else 0.0
+
+    return score
+
+
+@register("overlap")
+def overlap(exclude: Sequence[str] = NON_EXPRESSIVE) -> Scorer:
+    """100 × Σmin(p, t) / Σmax(p, t) (weighted Jaccard, a.k.a. Ruzicka similarity).
+
+    Unlike cosine, intensity matters: half the target's smile scores about 50, and a
+    neutral participant scores low against an expressive target.
+    """
+    keep = _kept(exclude)
+
+    def score(participant: Blendshapes, target: Blendshapes) -> float:
+        p, t = participant.array[keep], target.array[keep]
+        union = np.maximum(p, t).sum()
+        return float(100 * np.minimum(p, t).sum() / union) if union > 0 else 0.0
+
+    return score
+
+
+def _starting(*prefixes: str) -> tuple[str, ...]:
+    return tuple(n for n in BLENDSHAPE_NAMES if n.startswith(prefixes))
+
+
+REGIONS: dict[str, tuple[str, ...]] = {
+    "brows": _starting("brow"),
+    "eyes": _starting("eyeBlink", "eyeSquint", "eyeWide"),
+    "cheeks_nose": _starting("cheek", "nose"),
+    "mouth": _starting("mouth"),
+    "jaw": _starting("jaw"),
+}
+
+
+@register("regions")
+def regions(full_activity: float = 0.5) -> Scorer:
+    """Weighted Jaccard (see `overlap`) per facial region, averaged over regions.
+
+    A region's weight is its activity (Σmax(p, t) over its blendshapes) capped at
+    `full_activity`, so a clearly moving region counts fully however many blendshapes it
+    has (the mouth has 23, the brows 5) and quiet regions barely count. Gaze is ignored.
+    """
+    indices = [blendshape_indices(names) for names in REGIONS.values()]
+
+    def score(participant: Blendshapes, target: Blendshapes) -> float:
+        total = weights = 0.0
+        for idx in indices:
+            p, t = participant.array[idx], target.array[idx]
+            union = np.maximum(p, t).sum()
+            if union > 0:
+                weight = min(union, full_activity)
+                total += weight * np.minimum(p, t).sum() / union
+                weights += weight
+        return float(100 * total / weights) if weights > 0 else 0.0
+
+    return score
+
+
+def _both_sides(name: str) -> tuple[str, ...]:
+    return (name,) if name in BLENDSHAPE_NAMES else (f"{name}Left", f"{name}Right")
+
+
+# FACS action units approximated by blendshapes (both sides averaged).
+ACTION_UNITS: dict[int, tuple[str, ...]] = {
+    1: _both_sides("browInnerUp"),  # inner brow raiser
+    2: _both_sides("browOuterUp"),  # outer brow raiser
+    4: _both_sides("browDown"),  # brow lowerer
+    5: _both_sides("eyeWide"),  # upper lid raiser
+    6: _both_sides("cheekSquint"),  # cheek raiser
+    7: _both_sides("eyeSquint"),  # lid tightener
+    9: _both_sides("noseSneer"),  # nose wrinkler
+    10: _both_sides("mouthUpperUp"),  # upper lip raiser
+    12: _both_sides("mouthSmile"),  # lip corner puller
+    15: _both_sides("mouthFrown"),  # lip corner depressor
+    20: _both_sides("mouthStretch"),  # lip stretcher
+    24: _both_sides("mouthPress"),  # lip pressor
+    26: _both_sides("jawOpen"),  # jaw drop
+}
+
+# Prototypical action units of the basic emotions (after EMFACS).
+EMOTIONS: dict[str, tuple[int, ...]] = {
+    "happiness": (6, 12),
+    "sadness": (1, 4, 15),
+    "surprise": (1, 2, 5, 26),
+    "fear": (1, 2, 4, 5, 20, 26),
+    "anger": (4, 7, 24),
+    "disgust": (9, 10),
+}
+
+
+@register("emotions")
+def emotions() -> Scorer:
+    """Weighted Jaccard of basic-emotion profiles.
+
+    Each emotion's evidence is the mean intensity of its prototypical action units;
+    the two faces' 6-emotion profiles are compared like in `overlap`. Only blendshapes
+    used by some prototype matter: it judges *which emotion* is shown, and cannot tell
+    apart faces outside the basic emotions (puffed cheeks, pouting, winking, ...).
+    """
+    au_idx = [blendshape_indices(names) for names in ACTION_UNITS.values()]
+    au_pos = {au: i for i, au in enumerate(ACTION_UNITS)}
+    emo_idx = [np.array([au_pos[au] for au in aus]) for aus in EMOTIONS.values()]
+
+    def profile(b: Blendshapes) -> npt.NDArray[np.float64]:
+        aus = np.array([b.array[idx].mean() for idx in au_idx])
+        return np.array([aus[idx].mean() for idx in emo_idx])
+
+    def score(participant: Blendshapes, target: Blendshapes) -> float:
+        p, t = profile(participant), profile(target)
+        union = np.maximum(p, t).sum()
+        return float(100 * np.minimum(p, t).sum() / union) if union > 0 else 0.0
 
     return score
