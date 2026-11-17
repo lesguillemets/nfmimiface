@@ -16,15 +16,16 @@ def to_qimage(image: RGBImage) -> QImage:
 
 
 class ImageView(QWidget):
-    """Shows an image scaled to fit, keeping its aspect ratio, centred.
+    """A panel showing an image scaled to fit, keeping its aspect ratio, centred.
 
-    The corner radius is set by the theme's stylesheet (`qproperty-radius`).
+    The panel (background, border) and `radius` come from the theme's stylesheet.
     """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._image: QImage | None = None
         self._radius = 0.0
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)  # draw the QSS panel
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def _get_radius(self) -> float:
@@ -43,11 +44,12 @@ class ImageView(QWidget):
     def paintEvent(self, event: QPaintEvent) -> None:
         if self._image is None:
             return
-        size = self._image.size().scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
+        panel = self.rect().adjusted(1, 1, -1, -1)  # inside the 1px border
+        size = self._image.size().scaled(panel.size(), Qt.AspectRatioMode.KeepAspectRatio)
         target = QRect(QPoint(0, 0), size)
-        target.moveCenter(self.rect().center())
-        clip = QPainterPath()
-        clip.addRoundedRect(target, self._radius, self._radius)
+        target.moveCenter(panel.center())
+        clip = QPainterPath()  # only the panel's corners are rounded
+        clip.addRoundedRect(panel, self._radius, self._radius)
         painter = QPainter(self)
         painter.setRenderHints(
             QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform
