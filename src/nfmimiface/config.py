@@ -54,6 +54,7 @@ class ExperimentConfig:
     scorer: ScorerConfig
     stimuli: tuple[StimulusConfig, ...]
     messages: tuple[ScoreMessage, ...]
+    theme: str = "light"  # a name in gui.theme.THEMES; `--theme` overrides it
 
 
 def load_config(path: Path) -> ExperimentConfig:
@@ -83,4 +84,5 @@ def load_config(path: Path) -> ExperimentConfig:
         scorer=ScorerConfig(name=raw["scorer"]["name"], params=raw["scorer"].get("params", {})),
         stimuli=stimuli,
         messages=messages,
+        theme=raw.get("theme", "light"),
     )

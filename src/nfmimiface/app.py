@@ -22,13 +22,16 @@ def main() -> None:
     parser.add_argument(
         "--fake-camera", type=Path, metavar="IMAGE", help="show IMAGE instead of the webcam"
     )
-    parser.add_argument("--theme", choices=THEMES, default="light")
+    parser.add_argument("--theme", choices=THEMES, help="override the experiment's theme")
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
-    apply_theme(app, THEMES[args.theme])
     try:
         config = load_config(args.experiment)
+        theme = args.theme or config.theme
+        if theme not in THEMES:
+            raise ValueError(f"theme must be one of {list(THEMES)}, got {theme!r}")
+        apply_theme(app, THEMES[theme])
         analyzer = FaceAnalyzer()
         experiment = Experiment(config, analyzer)  # loads and analyses the stimuli
         source: FrameSource = (
