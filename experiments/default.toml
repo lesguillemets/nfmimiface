@@ -3,6 +3,7 @@ machine_name = "pc1"           # prepended to session IDs to tell machines apart
 stimulus_side = "left"          # "left" | "right"
 crop_scale = 2.0                # crop size relative to the detected face box
 closing_message = "参加してくれてありがとうございました！"
+theme = "light"                 # optional: "light" (default) | "dark"; --theme overrides it
 
 [camera]
 index = 0
