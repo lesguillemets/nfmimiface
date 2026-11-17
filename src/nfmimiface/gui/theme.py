@@ -23,38 +23,35 @@ class Theme:
     accent_pressed: str
     on_accent: str  # text on accent-coloured buttons
     warning: str  # "no face detected" messages
-    button_radius: int  # px; half the button height (36) makes a pill
-    image_radius: int  # px
+    radius: int  # px, corners of buttons and image panels
 
 
-LIGHT = Theme(
-    background="#faf6f0",
-    text="#2e2a25",
-    subtle_text="#857c70",
+LIGHT = Theme(  # cool paper white with the navy as accent
+    background="#f3f4f6",
+    text="#182133",
+    subtle_text="#5b6577",
     surface="#ffffff",
-    border="#e6dfd4",
-    accent="#f26b4f",
-    accent_hover="#f5826a",
-    accent_pressed="#d9583e",
+    border="#d5dae1",
+    accent="#00205b",
+    accent_hover="#13377a",
+    accent_pressed="#001538",
     on_accent="#ffffff",
-    warning="#c2410c",
-    button_radius=36,
-    image_radius=14,
+    warning="#b42318",
+    radius=3,
 )
 
-DARK = Theme(  # navy #00205B with a gold accent
+DARK = Theme(  # navy #00205B with a muted gold accent
     background="#00205b",
-    text="#f3f6fc",
+    text="#eef2f9",
     subtle_text="#9fb3da",
     surface="#0a2c6b",
     border="#1f4285",
-    accent="#ffc53d",
-    accent_hover="#ffd36e",
-    accent_pressed="#e6a817",
+    accent="#e9b949",
+    accent_hover="#f0c96b",
+    accent_pressed="#cf9f32",
     on_accent="#00205b",
     warning="#ff9a7a",
-    button_radius=4,
-    image_radius=4,
+    radius=3,
 )
 
 THEMES = {"light": LIGHT, "dark": DARK}
@@ -63,40 +60,41 @@ FONT_FAMILIES = ["Noto Sans CJK JP", "Noto Sans JP"]
 
 _STYLESHEET = Template("""
 QMainWindow, QDialog { background-color: $background; }
-QWidget { color: $text; font-size: 18pt; }
+QWidget { color: $text; font-size: 16pt; }
 
 ImageView {
     background-color: $surface;
     border: 1px solid $border;
-    border-radius: ${image_radius}px;
-    qproperty-radius: $image_radius;
+    border-radius: ${radius}px;
+    qproperty-radius: $radius;
 }
 
-QLabel#title { font-size: 32pt; font-weight: 700; }
-QLabel#instruction { font-size: 26pt; font-weight: 700; }
+QLabel#title { font-size: 28pt; font-weight: 700; letter-spacing: 2px; }
+QLabel#instruction { font-size: 22pt; font-weight: 500; }
 QLabel#hint { color: $subtle_text; }
-QLabel#caption { font-size: 16pt; font-weight: 700; color: $subtle_text; }
+QLabel#caption { font-size: 13pt; font-weight: 700; letter-spacing: 4px; color: $subtle_text; }
 QLabel#status { font-weight: 700; color: $warning; }
 QLabel#score { color: $accent; }
-QLabel#message { font-size: 28pt; font-weight: 700; }
-QLabel#closing { font-size: 34pt; font-weight: 700; }
+QLabel#message { font-size: 22pt; font-weight: 500; }
+QLabel#closing { font-size: 28pt; font-weight: 500; letter-spacing: 1px; }
 
 QPushButton {  /* plain buttons, e.g. OK in the error dialog */
     background-color: transparent;
     border: 2px solid $subtle_text;
-    border-radius: 8px;
+    border-radius: ${radius}px;
     padding: 6px 24px;
 }
 QPushButton#primary {
     background-color: $accent;
     color: $on_accent;
     border: none;
-    border-radius: ${button_radius}px;
-    min-height: 72px;
-    min-width: 280px;
+    border-radius: ${radius}px;
+    min-height: 60px;
+    min-width: 260px;
     padding: 0 48px;
-    font-size: 24pt;
+    font-size: 18pt;
     font-weight: 700;
+    letter-spacing: 4px;
 }
 QPushButton#primary:hover { background-color: $accent_hover; }
 QPushButton#primary:pressed { background-color: $accent_pressed; }

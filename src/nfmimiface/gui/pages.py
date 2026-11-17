@@ -143,8 +143,8 @@ class FeedbackPage(Page):
 
     def show_score(self, score: float) -> None:
         self.score.setText(
-            f'<span style="font-size: 64pt; font-weight: 800;">{score:.1f}</span>'
-            '<span style="font-size: 28pt; font-weight: 700;"> 点</span>'
+            f'<span style="font-size: 72pt; font-weight: 300;">{score:.1f}</span>'
+            '<span style="font-size: 22pt; font-weight: 500;"> 点</span>'
         )
 
 
