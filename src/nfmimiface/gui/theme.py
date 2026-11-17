@@ -16,6 +16,8 @@ class Theme:
     background: str
     text: str
     subtle_text: str
+    surface: str  # image panels
+    border: str  # hairlines around panels
     accent: str  # main buttons and the score
     accent_hover: str
     accent_pressed: str
@@ -29,6 +31,8 @@ LIGHT = Theme(
     background="#faf6f0",
     text="#2e2a25",
     subtle_text="#857c70",
+    surface="#ffffff",
+    border="#e6dfd4",
     accent="#f26b4f",
     accent_hover="#f5826a",
     accent_pressed="#d9583e",
@@ -42,6 +46,8 @@ DARK = Theme(  # navy #00205B with a gold accent
     background="#00205b",
     text="#f3f6fc",
     subtle_text="#9fb3da",
+    surface="#0a2c6b",
+    border="#1f4285",
     accent="#ffc53d",
     accent_hover="#ffd36e",
     accent_pressed="#e6a817",
@@ -59,7 +65,12 @@ _STYLESHEET = Template("""
 QMainWindow, QDialog { background-color: $background; }
 QWidget { color: $text; font-size: 18pt; }
 
-ImageView { qproperty-radius: $image_radius; }
+ImageView {
+    background-color: $surface;
+    border: 1px solid $border;
+    border-radius: ${image_radius}px;
+    qproperty-radius: $image_radius;
+}
 
 QLabel#title { font-size: 32pt; font-weight: 700; }
 QLabel#instruction { font-size: 26pt; font-weight: 700; }
