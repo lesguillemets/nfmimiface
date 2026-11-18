@@ -163,10 +163,12 @@ def _both_sides(name: str) -> tuple[str, ...]:
     return (name,) if name in BLENDSHAPE_NAMES else (f"{name}Left", f"{name}Right")
 
 
-# FACS action units approximated by blendshapes (both sides averaged).
-# MediaPipe's cheekSquint stays near 0 even in broad smiles; the cheek raiser (AU6) shows up
-# as eyeSquint instead. So eyeSquint stands for AU6, and the lid tightener (AU7), which
-# MediaPipe cannot tell apart from it, is left out.
+# FACS action units from blendshapes (both sides averaged), after the expert mapping of
+# Turrisi et al. (2026), "Blendshape features meet action units", Computers in Human
+# Behavior Reports 22, 101125, Fig. 4. One deliberate deviation: the paper maps cheekSquint
+# to the cheek raiser (AU6) and eyeSquint to the lid tightener (AU7), but MediaPipe's
+# cheekSquint stays near 0 even in broad smiles, where eyeSquint rises instead. So
+# eyeSquint stands for AU6 here, and AU7, which MediaPipe cannot tell apart, is left out.
 ACTION_UNITS: dict[int, tuple[str, ...]] = {
     1: _both_sides("browInnerUp"),  # inner brow raiser
     2: _both_sides("browOuterUp"),  # outer brow raiser
@@ -174,22 +176,24 @@ ACTION_UNITS: dict[int, tuple[str, ...]] = {
     5: _both_sides("eyeWide"),  # upper lid raiser
     6: _both_sides("eyeSquint"),  # cheek raiser (see above)
     9: _both_sides("noseSneer"),  # nose wrinkler
-    10: _both_sides("mouthUpperUp"),  # upper lip raiser
     12: _both_sides("mouthSmile"),  # lip corner puller
     15: _both_sides("mouthFrown"),  # lip corner depressor
+    16: _both_sides("mouthLowerDown"),  # lower lip depressor
     20: _both_sides("mouthStretch"),  # lip stretcher
     24: _both_sides("mouthPress"),  # lip pressor
     26: _both_sides("jawOpen"),  # jaw drop
 }
 
-# Prototypical action units of the basic emotions (after EMFACS).
+# Prototypical action units of the basic emotions (after EMFACS). Anger is usually
+# 4+5+7+23; AU7 is unavailable (see above) and the lip tightener AU23 has no blendshape,
+# so the lip pressor AU24 stands in for it.
 EMOTIONS: dict[str, tuple[int, ...]] = {
     "happiness": (6, 12),
     "sadness": (1, 4, 15),
     "surprise": (1, 2, 5, 26),
     "fear": (1, 2, 4, 5, 20, 26),
-    "anger": (4, 24),
-    "disgust": (9, 10),
+    "anger": (4, 5, 24),
+    "disgust": (9, 15, 16),
 }
 
 
