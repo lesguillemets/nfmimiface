@@ -9,6 +9,7 @@ from typing import cast
 import cv2
 import numpy as np
 import numpy.typing as npt
+import segno
 
 type RGBImage = npt.NDArray[np.uint8]
 
@@ -27,3 +28,10 @@ def save_png(path: Path, image: RGBImage) -> None:
     if not ok:
         raise ValueError(f"cannot encode image for {path}")
     buffer.tofile(path)
+
+
+def qr_image(text: str, module_px: int = 6) -> RGBImage:
+    """QR code for `text`, black on white with the standard 4-module quiet zone."""
+    rows = segno.make(text, micro=False).matrix_iter(scale=module_px, border=4)
+    dark = np.array([list(row) for row in rows], dtype=bool)
+    return np.repeat(np.where(dark, 0, 255).astype(np.uint8)[..., None], 3, axis=2)

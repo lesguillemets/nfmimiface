@@ -11,7 +11,7 @@ plain Python and can be tested without a camera or a window.
 |---|---|
 | `constants.py` | Static paths: project root, model file, default experiment, results root |
 | `config.py` | `load_config()` → `ExperimentConfig` (plain data read from the TOML) |
-| `images.py` | `RGBImage` type; `load_rgb`, `save_png` (safe with non-ASCII paths on Windows) |
+| `images.py` | `RGBImage` type; `load_rgb`, `save_png` (safe with non-ASCII paths on Windows), `qr_image` |
 | `face.py` | `FaceAnalyzer` (mediapipe), `Blendshapes`, `Rect`, `crop_rect` |
 | `scoring.py` | `Scorer` type, `@register`, `make_scorer`, the scorers themselves |
 | `experiment.py` | `Experiment`, `Session`, steps (`Imitate`, `Feedback`, `Closing`), `TrialResult` |
