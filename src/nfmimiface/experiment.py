@@ -13,6 +13,8 @@ crop that is analysed and saved is what the participant saw.
 
 import hashlib
 import json
+import re
+import secrets
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -117,6 +119,22 @@ class Experiment:
         return Stimulus(config.path, md5, config.instruction, image, blendshapes)
 
 
+# Lowercase letters and digits without the easily confused 0, 1, i, l, o.
+ID_ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz"
+
+
+def new_session_id(results_root: Path, machine_name: str) -> str:
+    """`{machine_name}_{NNN}_{xxxxx}`: NNN follows the highest number this machine has used
+    so far (in any date directory); xxxxx is random, so a mistyped ID can be noticed.
+
+    Assumes only one session starts at a time on each machine.
+    """
+    pattern = re.compile(rf"{re.escape(machine_name)}_(\d+)_[a-z0-9]+")
+    numbers = [int(m[1]) for f in results_root.glob("*/*.json") if (m := pattern.fullmatch(f.stem))]
+    random_part = "".join(secrets.choice(ID_ALPHABET) for _ in range(5))
+    return f"{machine_name}_{max(numbers, default=0) + 1:03d}_{random_part}"
+
+
 class Session:
     """One participant's visit. Its JSON record is written at the start and after each trial."""
 
@@ -126,8 +144,7 @@ class Session:
         self.started_at = started_at
         self.dir = experiment.results_root / f"{started_at:%Y%m%d}"
         self.dir.mkdir(parents=True, exist_ok=True)
-        number = len(list(self.dir.glob("*.json"))) + 1  # per machine and day
-        self.id = f"{experiment.config.machine_name}-{started_at:%Y%m%d-%H%M%S}-{number:03d}"
+        self.id = new_session_id(experiment.results_root, experiment.config.machine_name)
         self.steps = experiment.build_steps()
         self.trials: list[TrialResult] = []
         self._position = 0
