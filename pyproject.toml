@@ -16,6 +16,8 @@ dependencies = [
 [project.scripts]
 nfmimiface = "nfmimiface.app:main"
 nfmimiface-blendshapes = "nfmimiface.show_blendshapes:main"
+nfmimiface-compare-scorers = "nfmimiface.compare_scorers:main"
+nfmimiface-live-score = "nfmimiface.live_score:main"
 
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14.0"]

@@ -16,6 +16,8 @@ plain Python and can be tested without a camera or a window.
 | `scoring.py` | `Scorer` type, `@register`, `make_scorer`, the scorers themselves |
 | `experiment.py` | `Experiment`, `Session`, steps (`Imitate`, `Feedback`, `Closing`), `TrialResult` |
 | `show_blendshapes.py` | Command-line tool `nfmimiface-blendshapes` |
+| `compare_scorers.py` | Command-line tool `nfmimiface-compare-scorers`: scorers on labelled photos ([scorers.md](scorers.md)) |
+| `live_score.py` | `nfmimiface-live-score`: live scores of the webcam face against a target image |
 | `app.py` | Entry point `nfmimiface`: loads everything (errors → dialog), opens the window |
 | `gui/camera.py` | `FrameSource` threads emitting mirrored RGB frames: `Camera`, `StillImage` (`--fake-camera`) |
 | `gui/widgets.py` | `ImageView` (aspect-preserving image), `to_qimage` |
@@ -84,7 +86,7 @@ sessions on that machine.
 ## Extension points
 
 - **New scorer:** see the docstring of `scoring.py`, then select it with `[scorer] name`
-  in the TOML.
+  in the TOML. The candidates and their behaviour: [scorers.md](scorers.md).
 - **Different order (e.g. shuffling):** change `Experiment.build_steps()`.
 - **New kind of step** (e.g. a neutral face before the task): add a step class to
   `experiment.py`, include it in `Step`, emit it from `build_steps()`, and add a GUI page.
