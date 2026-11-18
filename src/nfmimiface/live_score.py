@@ -3,25 +3,25 @@
     uv run nfmimiface-live-score --img-path TARGET [--scorer NAME ...] [--camera N]
 
 TARGET is an image, or a directory of images (← / → switch between them). Each
-`--scorer` NAME is shown with its default params; without any, the candidates of
-nfmimiface-compare-scorers are shown. As in the app, the webcam image is mirrored before
-analysis; unlike the app, the whole frame is analysed (no crop). Scores update ~10
-times per second and are not smoothed.
+`--scorer` NAME is shown with its default params (as a number and a bar); without any,
+the candidates of nfmimiface-compare-scorers are shown. As in the app, the webcam image
+is mirrored before analysis; unlike the app, the whole frame is analysed (no crop).
+Scores update ~10 times per second and are not smoothed.
 """
 
 import argparse
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QFont, QKeyEvent
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import QRectF, Qt, QTimer
+from PySide6.QtGui import QColor, QFont, QKeyEvent, QPainter, QPaintEvent
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from nfmimiface.compare_scorers import CANDIDATES
 from nfmimiface.config import CameraConfig, ScorerConfig
 from nfmimiface.face import Blendshapes, FaceAnalyzer
 from nfmimiface.gui.camera import Camera, FrameSource, StillImage
-from nfmimiface.gui.theme import apply_theme
+from nfmimiface.gui.theme import LIGHT, Theme, apply_theme
 from nfmimiface.gui.widgets import ImageView
 from nfmimiface.images import RGBImage, load_rgb
 from nfmimiface.scoring import Scorer, make_scorer
@@ -30,6 +30,55 @@ IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 ANALYSIS_INTERVAL_MS = 100
 
 type Target = tuple[Path, RGBImage, Blendshapes]
+
+
+class ScoreBars(QWidget):
+    """One row per scorer: name, a 0–100 bar, and the score. `None` means no face."""
+
+    def __init__(self, names: list[str], theme: Theme = LIGHT) -> None:
+        super().__init__()
+        self._names, self._theme = names, theme
+        self._scores: list[float] | None = None
+        font = QFont("monospace", 18)
+        font.setStyleHint(QFont.StyleHint.TypeWriter)
+        self.setFont(font)
+        self.setStyleSheet("font-size: 18pt;")  # the theme sets 16pt on QWidget
+        self.setMinimumHeight(int(len(names) * self.fontMetrics().height() * 1.5))
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    def set_scores(self, scores: list[float] | None) -> None:
+        self._scores = scores
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        fm = self.fontMetrics()
+        if self._scores is None:
+            painter.setPen(QColor(self._theme.warning))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "no face")
+            return
+        row_h = self.height() / len(self._names)
+        name_w = max(fm.horizontalAdvance(n) for n in self._names) + fm.averageCharWidth()
+        value_w = fm.horizontalAdvance(" 100.0")
+        bar_x, bar_w = name_w, self.width() - name_w - value_w
+        # recessive grid every 20 points
+        painter.setPen(QColor(self._theme.border))
+        for v in range(0, 101, 20):
+            x = bar_x + bar_w * v / 100
+            painter.drawLine(int(x), 0, int(x), self.height())
+        for i, (name, score) in enumerate(zip(self._names, self._scores, strict=True)):
+            row = QRectF(0, i * row_h, self.width(), row_h)
+            painter.setPen(QColor(self._theme.text))
+            painter.drawText(row, Qt.AlignmentFlag.AlignVCenter, name)
+            painter.drawText(
+                row, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight, f"{score:5.1f}"
+            )
+            bar_h = row_h * 0.5
+            bar = QRectF(bar_x, row.center().y() - bar_h / 2, bar_w * score / 100, bar_h)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(self._theme.accent))
+            painter.drawRoundedRect(bar, 2, 2)
 
 
 class LiveWindow(QWidget):
@@ -46,17 +95,13 @@ class LiveWindow(QWidget):
         self._frame: RGBImage | None = None
 
         self._target_view, self._camera_view = ImageView(), ImageView()
-        self._scores = QLabel()
-        font = QFont("monospace", 20)
-        font.setStyleHint(QFont.StyleHint.TypeWriter)
-        self._scores.setFont(font)
-        self._scores.setStyleSheet("font-size: 20pt;")  # the theme sets 16pt on QWidget
+        self._bars = ScoreBars(list(scorers))
         images = QHBoxLayout()
         images.addWidget(self._target_view)
         images.addWidget(self._camera_view)
         layout = QVBoxLayout(self)
         layout.addLayout(images, stretch=1)
-        layout.addWidget(self._scores, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self._bars)
 
         source.frame.connect(self._on_frame)
         timer = QTimer(self)
@@ -77,12 +122,10 @@ class LiveWindow(QWidget):
         if self._frame is None:
             return
         if (participant := self._analyzer.blendshapes(self._frame)) is None:
-            self._scores.setText("no face")
+            self._bars.set_scores(None)
             return
         target = self._targets[self._index][2]
-        width = max(map(len, self._scorers))
-        lines = [f"{n:<{width}} {s(participant, target):5.1f}" for n, s in self._scorers.items()]
-        self._scores.setText("\n".join(lines))
+        self._bars.set_scores([s(participant, target) for s in self._scorers.values()])
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         step = {Qt.Key.Key_Right: 1, Qt.Key.Key_Left: -1}.get(Qt.Key(event.key()))
