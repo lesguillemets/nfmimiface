@@ -57,11 +57,12 @@ imitation pairs, so only a sanity check):
   of the same face, and some values move a lot (one surprised face: `browInnerUp` 0.13
   vs 0.47). Even after swapping the sides back, a face scores only ~75 (`overlap`)
   against its own flipped copy, so ~100 is out of reach in practice.
-- **`cheekSquint` hardly moves.** It stays at 0.000 in two broad smiles; the cheek
-  raise of a genuine smile shows up as `eyeSquint`. `browDown` can be high (0.8) in a
-  smile. MediaPipe's blendshapes "loosely correspond" to FACS action units
-  ([Py-Feat model card](https://huggingface.co/py-feat/mp_blendshapes)), and these
-  quirks are where the correspondence breaks down.
+- **`cheekSquint` stayed at 0 in both smiling photos** (0.000), while `eyeSquint` rose
+  (0.15–0.65), and one smile has `browDown` 0.8. Two photos are far too few to call this
+  MediaPipe's general behaviour; it is a hypothesis to check with more faces (e.g. with
+  `nfmimiface-live-score`). MediaPipe's blendshapes only "loosely correspond" to FACS
+  action units ([Py-Feat model card](https://huggingface.co/py-feat/mp_blendshapes)), so
+  such mismatches are plausible.
 
 ## Candidates
 
@@ -149,14 +150,13 @@ Limits:
   winking: anything outside the prototypes is invisible. Use it only if all stimuli are
   basic emotional expressions.
 - The mapping is defined by what each blendshape is *meant* to capture; the authors note
-  it has not yet been tested on data. MediaPipe's actual output departs from it in
-  places: `cheekSquint` (AU6) stays at 0 in broad smiles while `eyeSquint` (AU7) rises
-  (see above). So happiness evidence comes from the mouth alone and tops out at about
-  half, and a smile with squinted eyes and lowered brows shows "anger" evidence (0.46
-  for one smiling face). Since both faces go through the same mapping, a blendshape that
-  never moves mostly rescales that emotion for both, rather than breaking the comparison.
-  The mapping is kept as published anyway, so the scorer stays citable and free of
-  ad-hoc choices.
+  it has not yet been tested on data. In the two smiling photos here, `cheekSquint`
+  (AU6) stayed at 0 while `eyeSquint` (AU7) rose (see above). If that is typical,
+  happiness evidence comes from the mouth alone and tops out at about half, and a smile
+  with squinted eyes and lowered brows shows "anger" evidence (0.46 for one smiling
+  face). Since both faces go through the same mapping, a blendshape that never moves
+  mostly rescales that emotion for both, rather than breaking the comparison. The
+  mapping is kept as published, so the scorer stays citable and free of ad-hoc choices.
 - Because evidence is a *mean*, one action unit alone counts partly (see "soft-AND"
   below).
 - Emotions overlap in their action units (surprise ⊂ fear), so related emotions score
