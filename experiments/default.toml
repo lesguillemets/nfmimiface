@@ -11,7 +11,7 @@ width = 1280
 height = 720
 
 [scorer]
-name = "cosine"
+name = "shape_strength"
 # params = { ... }
 
 # One trial per entry, in this order. Paths are relative to the project root.
