@@ -4,7 +4,8 @@
 
 TARGET is an image, or a directory of images (← / → switch between them). Each
 `--scorer` NAME is shown with its default params (as a number and a bar); without any,
-the candidates of nfmimiface-compare-scorers are shown. As in the app, the webcam image
+the candidates of nfmimiface-compare-scorers are shown. The drop-down above the bars
+shows all of them or just one. As in the app, the webcam image
 is mirrored before analysis; unlike the app, the whole frame is analysed (no crop).
 Scores update ~10 times per second and are not smoothed.
 """
@@ -15,7 +16,14 @@ from pathlib import Path
 
 from PySide6.QtCore import QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QKeyEvent, QPainter, QPaintEvent
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QHBoxLayout,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from nfmimiface.compare_scorers import CANDIDATES
 from nfmimiface.config import CameraConfig, ScorerConfig
@@ -28,6 +36,7 @@ from nfmimiface.scoring import Scorer, make_scorer
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 ANALYSIS_INTERVAL_MS = 100
+ALL = "(all)"
 
 type Target = tuple[Path, RGBImage, Blendshapes]
 
@@ -37,14 +46,19 @@ class ScoreBars(QWidget):
 
     def __init__(self, names: list[str], theme: Theme = LIGHT) -> None:
         super().__init__()
-        self._names, self._theme = names, theme
-        self._scores: list[float] | None = None
+        self._theme = theme
         font = QFont("monospace", 18)
         font.setStyleHint(QFont.StyleHint.TypeWriter)
         self.setFont(font)
         self.setStyleSheet("font-size: 18pt;")  # the theme sets 16pt on QWidget
-        self.setMinimumHeight(int(len(names) * self.fontMetrics().height() * 1.5))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.set_names(names)
+
+    def set_names(self, names: list[str]) -> None:
+        self._names = names
+        self._scores: list[float] | None = []  # nothing to show until the next scores
+        self.setFixedHeight(int(len(names) * self.fontMetrics().height() * 1.5))
+        self.update()
 
     def set_scores(self, scores: list[float] | None) -> None:
         self._scores = scores
@@ -57,6 +71,8 @@ class ScoreBars(QWidget):
         if self._scores is None:
             painter.setPen(QColor(self._theme.warning))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "no face")
+            return
+        if len(self._scores) != len(self._names):
             return
         row_h = self.height() / len(self._names)
         name_w = max(fm.horizontalAdvance(n) for n in self._names) + fm.averageCharWidth()
@@ -90,17 +106,23 @@ class LiveWindow(QWidget):
         source: FrameSource,
     ) -> None:
         super().__init__()
-        self._targets, self._scorers, self._analyzer = targets, scorers, analyzer
+        self._targets, self._analyzer = targets, analyzer
+        self._all_scorers = self._scorers = scorers
         self._index = 0
         self._frame: RGBImage | None = None
 
         self._target_view, self._camera_view = ImageView(), ImageView()
+        self._choice = QComboBox()
+        self._choice.addItems([ALL, *scorers])
+        self._choice.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # keep ← / → for the targets
+        self._choice.currentTextChanged.connect(self._choose)
         self._bars = ScoreBars(list(scorers))
         images = QHBoxLayout()
         images.addWidget(self._target_view)
         images.addWidget(self._camera_view)
         layout = QVBoxLayout(self)
         layout.addLayout(images, stretch=1)
+        layout.addWidget(self._choice, alignment=Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(self._bars)
 
         source.frame.connect(self._on_frame)
@@ -113,6 +135,12 @@ class LiveWindow(QWidget):
         path, image, _ = self._targets[self._index]
         self._target_view.set_image(image)
         self.setWindowTitle(f"{path.name} ({self._index + 1}/{len(self._targets)})")
+
+    def _choose(self, name: str) -> None:
+        all_ = self._all_scorers
+        self._scorers = all_ if name == ALL else {name: all_[name]}
+        self._bars.set_names(list(self._scorers))
+        self._update_scores()
 
     def _on_frame(self, frame: RGBImage) -> None:
         self._frame = frame
