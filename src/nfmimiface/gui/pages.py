@@ -104,7 +104,10 @@ class ImitatePage(Page):
 
 
 class FeedbackPage(Page):
-    """The score counts up from 0; the message appears when it reaches the score."""
+    """The score counts up from 0; the message appears when it reaches the score.
+
+    The button is disabled while counting, so repeated presses cannot skip the result.
+    """
 
     COUNT_UP_MS = 800
 
@@ -119,7 +122,7 @@ class FeedbackPage(Page):
         self._count_up.setDuration(self.COUNT_UP_MS)
         self._count_up.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._count_up.valueChanged.connect(lambda value: self.show_score(float(value)))
-        self._count_up.finished.connect(lambda: self.message.setText(self._message_text))
+        self._count_up.finished.connect(self._show_message)
         self.column.addLayout(
             _side_by_side(
                 _captioned(self.stimulus, "お手本"), _captioned(self.face, "あなた"), side
@@ -137,11 +140,16 @@ class FeedbackPage(Page):
         self.face.set_image(trial.face)
         self._message_text = trial.message
         self.message.setText(" ")  # keeps the line's height, so nothing moves when it appears
+        self.button.setEnabled(False)
         self._count_up.stop()
         self._count_up.setStartValue(0.0)
         self._count_up.setEndValue(trial.score)
         self.show_score(0.0)
         self._count_up.start()
+
+    def _show_message(self) -> None:
+        self.message.setText(self._message_text)
+        self.button.setEnabled(True)
 
     def show_score(self, score: float) -> None:
         self.score.setText(
