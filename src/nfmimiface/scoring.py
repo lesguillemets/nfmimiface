@@ -7,6 +7,10 @@ Scorers are created by *factories* registered under a name; the experiment TOML 
     name = "cosine"
     params = { exclude = ["_neutral", "eyeBlinkLeft", "eyeBlinkRight"] }
 
+The vector scorers (cosine, pearson, overlap, shape_strength) take either `exclude`
+(blendshapes to ignore) or `include` (the only blendshapes to use); given both, `include`
+wins.
+
 `params` are passed to the factory as keyword arguments.
 
 To add a scorer, define a factory in this module (or in a module imported by it) and
@@ -68,12 +72,12 @@ def make_scorer(config: ScorerConfig) -> Scorer:
 
 
 @register("cosine")
-def cosine(exclude: Sequence[str] = ("_neutral",)) -> Scorer:
+def cosine(exclude: Sequence[str] = ("_neutral",), include: Sequence[str] | None = None) -> Scorer:
     """100 × cosine similarity of the blendshape vectors, ignoring `exclude`.
 
     Blendshape scores are non-negative, so the result is already within 0..100.
     """
-    keep = _kept(exclude)
+    keep = _kept(exclude, include)
 
     def score(participant: Blendshapes, target: Blendshapes) -> float:
         p, t = participant.array[keep], target.array[keep]
@@ -83,18 +87,24 @@ def cosine(exclude: Sequence[str] = ("_neutral",)) -> Scorer:
     return score
 
 
-def _kept(exclude: Sequence[str]) -> npt.NDArray[np.bool_]:
-    """Mask of the blendshapes not in `exclude`."""
+def _kept(exclude: Sequence[str], include: Sequence[str] | None) -> npt.NDArray[np.bool_]:
+    """Mask of the blendshapes in `include` if given, else of those not in `exclude`."""
+    if include is not None:
+        keep = np.zeros(len(BLENDSHAPE_NAMES), dtype=bool)
+        keep[blendshape_indices(include)] = True
+        return keep
     keep = np.ones(len(BLENDSHAPE_NAMES), dtype=bool)
     keep[blendshape_indices(exclude)] = False
     return keep
 
 
 @register("pearson")
-def pearson(exclude: Sequence[str] = NON_EXPRESSIVE) -> Scorer:
+def pearson(
+    exclude: Sequence[str] = NON_EXPRESSIVE, include: Sequence[str] | None = None
+) -> Scorer:
     """100 × Pearson correlation (negative clipped to 0): cosine after subtracting each
     face's mean, so a general level of activity matching does not count by itself."""
-    keep = _kept(exclude)
+    keep = _kept(exclude, include)
 
     def score(participant: Blendshapes, target: Blendshapes) -> float:
         p, t = participant.array[keep], target.array[keep]
@@ -106,13 +116,15 @@ def pearson(exclude: Sequence[str] = NON_EXPRESSIVE) -> Scorer:
 
 
 @register("overlap")
-def overlap(exclude: Sequence[str] = NON_EXPRESSIVE) -> Scorer:
+def overlap(
+    exclude: Sequence[str] = NON_EXPRESSIVE, include: Sequence[str] | None = None
+) -> Scorer:
     """100 × Σmin(p, t) / Σmax(p, t) (weighted Jaccard, a.k.a. Ruzicka similarity).
 
     Unlike cosine, intensity matters: half the target's smile scores about 50, and a
     neutral participant scores low against an expressive target.
     """
-    keep = _kept(exclude)
+    keep = _kept(exclude, include)
 
     def score(participant: Blendshapes, target: Blendshapes) -> float:
         p, t = participant.array[keep], target.array[keep]
@@ -226,7 +238,11 @@ def emotions(action_units: Mapping[str, Sequence[str]] | None = None) -> Scorer:
 
 
 @register("shape_strength")
-def shape_strength(strength_weight: float = 0.5, exclude: Sequence[str] = NON_EXPRESSIVE) -> Scorer:
+def shape_strength(
+    strength_weight: float = 0.5,
+    exclude: Sequence[str] = NON_EXPRESSIVE,
+    include: Sequence[str] | None = None,
+) -> Scorer:
     """100 × cosine × (smaller norm / larger norm) ** strength_weight.
 
     Separates *which* movements (cosine: the direction of the vector) from *how strongly*
@@ -234,7 +250,7 @@ def shape_strength(strength_weight: float = 0.5, exclude: Sequence[str] = NON_EX
     of the right movements scores 71; 0 ignores strength (plain cosine), 1 is strict.
     A quiet participant scores low, since its vector is short.
     """
-    keep = _kept(exclude)
+    keep = _kept(exclude, include)
 
     def score(participant: Blendshapes, target: Blendshapes) -> float:
         p, t = participant.array[keep], target.array[keep]

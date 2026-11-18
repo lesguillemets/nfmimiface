@@ -67,6 +67,9 @@ imitation pairs, so only a sanity check):
 ## Candidates
 
 Unless noted, `_neutral` and the gaze blendshapes (`scoring.NON_EXPRESSIVE`) are ignored.
+`cosine`, `pearson`, `overlap` and `shape_strength` take either `exclude` (blendshapes to
+ignore; replaces that default) or `include` (the only blendshapes to use), e.g.
+`params = { include = ["mouthSmileLeft", "mouthSmileRight", "jawOpen"] }`.
 
 ### `cosine` (current default): baseline
 
