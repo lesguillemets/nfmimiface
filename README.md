@@ -116,3 +116,26 @@ Without a webcam, `--fake-camera IMAGE` shows a still image in place of the came
 - `stimuli/`: the pictures of the faces to imitate. Each picture should show one clearly
   visible face; the program refuses to start if it finds no face in a stimulus. In the TOML, refer to them by paths relative to the project
   root, for example `path = "stimuli/face01.jpg"`.
+
+### Uninstall
+
+With uv and pip, everything is installed in `.venv/` inside the project directory, so
+deleting the project directory removes the installation. Copy `results/` elsewhere
+first if you need the results. The only things left outside are download caches,
+which you can remove if you want the disk space back. These commands clear the caches
+for all projects, not only this one:
+
+- uv: `uv cache clean`. If uv downloaded Python for this project (shown by
+  `uv python list --only-installed`), `uv python uninstall 3.12` removes it.
+- pip: `pip cache purge` (run it before deleting `.venv/`, with the environment
+  activated).
+
+With conda, the environment lives outside the project directory. Remove it with
+
+```bash
+conda deactivate
+conda env remove -n nfmimiface
+```
+
+and then delete the project directory. `conda clean --all` removes conda's download
+cache.
