@@ -64,7 +64,9 @@ Step = Imitate(stimulus) | Feedback(trial: index into Session.trials) | Closing(
 3. **`Feedback`:** shows `session.trials[step.trial]`: the face, the score and the message.
    The button reads 「次へ」, or 「終了」 when the next step is `Closing`
    (`session.next_is_closing`).
-4. Steps 2–3 repeat for each stimulus, then **`Closing`**.
+4. Steps 2–3 repeat for each stimulus, then **`Closing`**: the closing message and, if
+   `[form]` is set in the TOML, a QR code to the form URL with `{session_id}` replaced by
+   the session ID (e.g. a Google Form prefill link).
 
 Frames are RGB and mirrored once, right after capture from the camera. The face crop is
 therefore analysed and saved exactly as the participant saw it, so left/right

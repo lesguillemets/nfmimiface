@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         self._start_page = StartPage(config.name)
         self._imitate_page = ImitatePage(config.stimulus_side)
         self._feedback_page = FeedbackPage(config.stimulus_side)
-        self._closing_page = ClosingPage(config.closing_message)
+        self._closing_page = ClosingPage(config.closing_message, config.form)
         self._stack = QStackedWidget()
         for page in (self._start_page, self._imitate_page, self._feedback_page, self._closing_page):
             self._stack.addWidget(page)
@@ -95,6 +95,7 @@ class MainWindow(QMainWindow):
                 )
                 self._stack.setCurrentWidget(self._feedback_page)
             case Closing():
+                self._closing_page.show_session(self.session.id)
                 self._stack.setCurrentWidget(self._closing_page)
             case step:
                 assert_never(step)
