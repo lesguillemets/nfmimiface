@@ -76,7 +76,7 @@ class StartPage(Page):
 
 class ImitatePage(Page):
     def __init__(self, side: Side) -> None:
-        super().__init__("完了")
+        super().__init__("この表情を撮影")
         self.instruction = _label("instruction")
         self.stimulus = ImageView()
         self.live = ImageView()
@@ -84,7 +84,7 @@ class ImitatePage(Page):
         self.column.addWidget(self.instruction)
         self.column.addLayout(
             _side_by_side(
-                _captioned(self.stimulus, "お手本"), _captioned(self.live, "あなた"), side
+                _captioned(self.stimulus, "お手本"), _captioned(self.live, "あなたの表情"), side
             ),
             1,
         )
@@ -99,7 +99,7 @@ class ImitatePage(Page):
 
     def show_no_face(self) -> None:
         self.status.setText(
-            "顔が見つかりませんでした。顔がカメラに映るようにして、もう一度「完了」を押してください。"
+            "顔が見つかりませんでした。顔がカメラに映るようにして、もう一度撮影してください。"
         )
 
 
@@ -150,7 +150,7 @@ class FeedbackPage(Page):
 
 class ClosingPage(Page):
     def __init__(self, message: str) -> None:
-        super().__init__("おわる")
+        super().__init__("完了")
         self.column.addStretch(1)
         self.column.addWidget(_label("closing", message))
         self.column.addStretch(1)
