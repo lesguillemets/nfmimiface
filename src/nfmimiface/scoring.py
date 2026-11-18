@@ -163,37 +163,35 @@ def _both_sides(name: str) -> tuple[str, ...]:
     return (name,) if name in BLENDSHAPE_NAMES else (f"{name}Left", f"{name}Right")
 
 
-# FACS action units from blendshapes (both sides averaged), after the expert mapping of
-# Turrisi et al. (2026), "Blendshape features meet action units", Computers in Human
-# Behavior Reports 22, 101125, Fig. 4. One deliberate deviation: the paper maps cheekSquint
-# to the cheek raiser (AU6) and eyeSquint to the lid tightener (AU7), but MediaPipe's
-# cheekSquint stays near 0 even in broad smiles, where eyeSquint rises instead. So
-# eyeSquint stands for AU6 here, and AU7, which MediaPipe cannot tell apart, is left out.
+# Turrisi et al. (2026), "Blendshape features meet action units: a clinical mapping ...",
+# Computers in Human Behavior Reports 22, 101125: an expert-consensus mapping from
+# MediaPipe blendshapes to FACS action units (Fig. 4a) and from action units to the basic
+# emotions (Fig. 4b). Both are followed as published; lateralised action units are
+# averaged over both sides. Only the action units used by an emotion are listed.
 ACTION_UNITS: dict[int, tuple[str, ...]] = {
     1: _both_sides("browInnerUp"),  # inner brow raiser
     2: _both_sides("browOuterUp"),  # outer brow raiser
     4: _both_sides("browDown"),  # brow lowerer
     5: _both_sides("eyeWide"),  # upper lid raiser
-    6: _both_sides("eyeSquint"),  # cheek raiser (see above)
+    6: _both_sides("cheekSquint"),  # cheek raiser
+    7: _both_sides("eyeSquint"),  # lid tightener
     9: _both_sides("noseSneer"),  # nose wrinkler
     12: _both_sides("mouthSmile"),  # lip corner puller
     15: _both_sides("mouthFrown"),  # lip corner depressor
-    16: _both_sides("mouthLowerDown"),  # lower lip depressor
+    17: _both_sides("mouthShrugLower"),  # chin raiser
     20: _both_sides("mouthStretch"),  # lip stretcher
-    24: _both_sides("mouthPress"),  # lip pressor
     26: _both_sides("jawOpen"),  # jaw drop
 }
 
-# Prototypical action units of the basic emotions (after EMFACS). Anger is usually
-# 4+5+7+23; AU7 is unavailable (see above) and the lip tightener AU23 has no blendshape,
-# so the lip pressor AU24 stands in for it.
+# Contempt (one-sided 12+14) is left out: the profile averages both sides, so it cannot
+# express a one-sided movement.
 EMOTIONS: dict[str, tuple[int, ...]] = {
     "happiness": (6, 12),
     "sadness": (1, 4, 15),
     "surprise": (1, 2, 5, 26),
-    "fear": (1, 2, 4, 5, 20, 26),
-    "anger": (4, 5, 24),
-    "disgust": (9, 15, 16),
+    "fear": (1, 2, 4, 5, 7, 20, 26),
+    "anger": (4, 5, 7),
+    "disgust": (9, 15, 17),
 }
 
 

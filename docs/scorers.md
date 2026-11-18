@@ -127,13 +127,18 @@ if wanted.
 
 ### ★ `emotions`: basic-emotion profiles
 
-Blendshapes are mapped to FACS action units (`scoring.ACTION_UNITS`, both sides
-averaged), following the expert-consensus mapping of Turrisi et al. (2026, *Computers in
-Human Behavior Reports* 22, 101125, "Blendshape features meet action units", Fig. 4).
-Each basic emotion's evidence is the mean of its prototypical action units
-(`scoring.EMOTIONS`, after Ekman & Friesen's EMFACS: happiness = AU6+12, sadness = 1+4+15,
-surprise = 1+2+5+26, fear = 1+2+4+5+20+26, anger = 4+5+24, disgust = 9+15+16). The two
-6-emotion profiles are compared with `overlap`.
+Follows Turrisi et al. (2026, *Computers in Human Behavior Reports* 22, 101125,
+"Blendshape features meet action units"), as published, without adjustments:
+
+- blendshapes → FACS action units: their expert-consensus mapping (Fig. 4a),
+  `scoring.ACTION_UNITS`; both sides of a lateralised action unit are averaged.
+- action units → basic emotions: their Fig. 4b, `scoring.EMOTIONS`: happiness = AU6+12,
+  sadness = 1+4+15, surprise = 1+2+5+26, fear = 1+2+4+5+7+20+26, anger = 4+5+7,
+  disgust = 9+15+17. Contempt (one-sided 12+14) is left out, because averaging the
+  sides cannot express a one-sided movement.
+
+Each emotion's evidence is the mean of its action units, and the two 6-emotion profiles
+are compared with `overlap`.
 
 This asks the semantic question: *does the participant show the same emotion?* Two
 different-looking smiles count as the same. It is symmetric by construction (sides are
@@ -143,17 +148,17 @@ Limits:
 - It only knows the six emotions. Puffed cheeks, pouting, sticking out the tongue,
   winking: anything outside the prototypes is invisible. Use it only if all stimuli are
   basic emotional expressions.
-- One deliberate deviation from the paper: it maps `cheekSquint` to the cheek raiser
-  AU6 and `eyeSquint` to the lid tightener AU7, judged from what the blendshapes are
-  *meant* to capture (the authors note the mapping is not yet tested on data). In
-  MediaPipe's actual output `cheekSquint` stays at 0 in broad smiles (see above), which
-  would make happiness depend on the mouth alone. So `eyeSquint` stands for AU6 here, and
-  AU7, which MediaPipe then cannot tell apart, is left out (of anger and fear). The
-  lip tightener AU23 has no blendshape; the lip pressor AU24 stands in for it in anger.
-  The paper maps no blendshape to AU10, so disgust uses the 9+15+16 variant.
-- Because evidence is a *mean*, one action unit alone counts partly: the two sad faces
-  get happiness evidence 0.22–0.28 from squinting alone, and one smiling face shows
-  "anger" 0.39 (from `browDown` and `mouthPress`). See "soft-AND" below.
+- The mapping is defined by what each blendshape is *meant* to capture; the authors note
+  it has not yet been tested on data. MediaPipe's actual output departs from it in
+  places: `cheekSquint` (AU6) stays at 0 in broad smiles while `eyeSquint` (AU7) rises
+  (see above). So happiness evidence comes from the mouth alone and tops out at about
+  half, and a smile with squinted eyes and lowered brows shows "anger" evidence (0.46
+  for one smiling face). Since both faces go through the same mapping, a blendshape that
+  never moves mostly rescales that emotion for both, rather than breaking the comparison.
+  The mapping is kept as published anyway, so the scorer stays citable and free of
+  ad-hoc choices.
+- Because evidence is a *mean*, one action unit alone counts partly (see "soft-AND"
+  below).
 - Emotions overlap in their action units (surprise ⊂ fear), so related emotions score
   each other highly.
 
@@ -169,9 +174,9 @@ These are the most meaningful numbers here, because the ideal answer is known.
 | half strength | partial | 100 | 100 | 100 | 50 | 71 | 50 | 50 |
 | 1.5× strength | high | 99 | 100 | 100 | 70 | 84 | 69 | 71 |
 | mouth & jaw only | partial | 63 | 73 | 67 | 53 | 64 | 41 | 38 |
-| brows & eyes only | partial | 56 | 65 | 57 | 49 | 53 | 60 | 66 |
+| brows & eyes only | partial | 56 | 65 | 57 | 49 | 53 | 60 | 64 |
 | gaze moved | 100 | 85 | 100 | 100 | 100 | 100 | 100 | 100 |
-| quiet face | 0 | 37 | 35 | 1 | 5 | 8 | 6 | 5 |
+| quiet face | 0 | 37 | 35 | 1 | 5 | 8 | 6 | 4 |
 
 ### Photos (`--mirror`)
 
@@ -189,7 +194,7 @@ delighted one with raised lip corners.
 | overlap | 37 | 16 | 0.91 | 69 |
 | shape_strength | 56 | 24 | 0.88 | 88 |
 | regions | 38 | 19 | 0.89 | 68 |
-| emotions | 51 | 33 | 0.95 | 81 |
+| emotions | 48 | 31 | 0.85 | 85 |
 
 Selected pairs (participant → target; "~m" = flipped image):
 
@@ -197,10 +202,9 @@ Selected pairs (participant → target; "~m" = flipped image):
 |---|---|---|---|---|---|---|
 | smile1 → smile2 | 68 | 39 | 60 | 31 | 48 | same emotion, different smiles |
 | surp1 → surp2 | 39 | 28 | 38 | 41 | 44 | surp1 has raised lip corners |
-| smile2 → surp1 | 63 | 46 | 69 | 34 | 54 | the shared smile wins |
-| smile2~m → smile2 | 52 | 54 | 78 | 52 | 80 | same face, flipped |
+| smile2 → surp1 | 63 | 46 | 69 | 34 | 61 | the shared smile wins |
+| smile2~m → smile2 | 52 | 54 | 78 | 52 | 84 | same face, flipped |
 
-`emotions` separates the labels best, as expected since the labels *are* emotions;
 `regions` is the only one that ranks the surprise pair above smile→surprise, because
 it weighs the raised brows as much as the mouth.
 
