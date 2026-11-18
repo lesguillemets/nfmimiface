@@ -80,8 +80,10 @@ blendshapes match what the participant was imitating. Stimuli are never mirrored
   blendshapes.
 - `{session_id}_t{n}.png`: the mirrored face crop of trial *n*.
 
-Session IDs are `{machine_name}-{YYYYMMDD-HHMMSS}-{NNN}`, where NNN counts that day's
-sessions on that machine.
+Session IDs are `{machine_name}_{NNNN}_{xxxxx}`. NNNN is one more than the highest number
+the machine has used in any `results/*/` directory. xxxxx is 5 random lowercase letters
+and digits (without 0, 1, i, l, o), so that an ID typed wrongly (e.g. into a form) does
+not silently match another session. The date and time are in the JSON (`started_at`).
 
 ## Extension points
 
