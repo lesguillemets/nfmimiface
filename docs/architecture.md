@@ -16,6 +16,8 @@ plain Python and can be tested without a camera or a window.
 | `scoring.py` | `Scorer` type, `@register`, `make_scorer`, the scorers themselves |
 | `experiment.py` | `Experiment`, `Session`, steps (`Imitate`, `Feedback`, `Closing`), `TrialResult` |
 | `show_blendshapes.py` | Command-line tool `nfmimiface-blendshapes` |
+| `compare_scorers.py` | Command-line tool `nfmimiface-compare-scorers`: scorers on labelled photos ([scorers.md](scorers.md)) |
+| `live_score.py` | `nfmimiface-live-score`: live scores of the webcam face against a target image |
 | `app.py` | Entry point `nfmimiface`: loads everything (errors → dialog), opens the window |
 | `gui/camera.py` | `FrameSource` threads emitting mirrored RGB frames: `Camera`, `StillImage` (`--fake-camera`) |
 | `gui/widgets.py` | `ImageView` (aspect-preserving image), `to_qimage` |

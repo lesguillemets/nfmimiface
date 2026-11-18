@@ -18,7 +18,12 @@ Compare them with
     uv run nfmimiface-compare-scorers [DIR] [--edits] [--mirror] [--matrix]
 
 (see the module docstring of `compare_scorers.py`; candidates are listed in its
-`CANDIDATES`).
+`CANDIDATES`). To try them on yourself in front of the webcam:
+
+    uv run nfmimiface-live-score --img-path TARGET_IMAGE_OR_DIR [--scorer NAME ...]
+
+shows the target, the mirrored webcam image, and every candidate's score live
+(← / → switch targets in a directory).
 
 ## What a good imitation score should do
 
@@ -211,7 +216,8 @@ it weighs the raised brows as much as the mouth.
 
 All of them fix the two concrete flaws of the current default (gaze counted; a quiet
 face scores ~35). Comparing them on the event's actual stimuli, with a few people
-imitating them in front of the real webcam, is the next useful test.
+imitating them in front of the real webcam (`nfmimiface-live-score`), is the next
+useful test.
 
 ## Display and thresholds
 
