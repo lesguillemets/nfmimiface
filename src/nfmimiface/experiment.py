@@ -124,7 +124,7 @@ ID_ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz"
 
 
 def new_session_id(results_root: Path, machine_name: str) -> str:
-    """`{machine_name}_{NNN}_{xxxxx}`: NNN follows the highest number this machine has used
+    """`{machine_name}_{NNNN}_{xxxxx}`: NNNN follows the highest number this machine has used
     so far (in any date directory); xxxxx is random, so a mistyped ID can be noticed.
 
     Assumes only one session starts at a time on each machine.
@@ -132,7 +132,7 @@ def new_session_id(results_root: Path, machine_name: str) -> str:
     pattern = re.compile(rf"{re.escape(machine_name)}_(\d+)_[a-z0-9]+")
     numbers = [int(m[1]) for f in results_root.glob("*/*.json") if (m := pattern.fullmatch(f.stem))]
     random_part = "".join(secrets.choice(ID_ALPHABET) for _ in range(5))
-    return f"{machine_name}_{max(numbers, default=0) + 1:03d}_{random_part}"
+    return f"{machine_name}_{max(numbers, default=0) + 1:04d}_{random_part}"
 
 
 class Session:

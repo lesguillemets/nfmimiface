@@ -82,12 +82,12 @@ def test_session_ids_are_numbered(experiment: Experiment) -> None:
     machine = experiment.config.machine_name
     other_day = experiment.results_root / "20000101"
     other_day.mkdir(parents=True)
-    (other_day / f"{machine}_007_abcde.json").write_text("{}")
-    (other_day / "other_099_abcde.json").write_text("{}")  # another machine
+    (other_day / f"{machine}_0007_abcde.json").write_text("{}")
+    (other_day / "other_0099_abcde.json").write_text("{}")  # another machine
     first, second = experiment.start_session(FRAME), experiment.start_session(FRAME)
     assert first is not None and second is not None
-    assert re.fullmatch(rf"{machine}_008_[a-z0-9]{{5}}", first.id)
-    assert re.fullmatch(rf"{machine}_009_[a-z0-9]{{5}}", second.id)
+    assert re.fullmatch(rf"{machine}_0008_[a-z0-9]{{5}}", first.id)
+    assert re.fullmatch(rf"{machine}_0009_[a-z0-9]{{5}}", second.id)
 
 
 def test_next_is_closing(experiment: Experiment) -> None:
