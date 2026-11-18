@@ -98,6 +98,7 @@ QPushButton#primary {
 }
 QPushButton#primary:hover { background-color: $accent_hover; }
 QPushButton#primary:pressed { background-color: $accent_pressed; }
+QPushButton#primary:disabled { background-color: $border; color: $subtle_text; }
 """)
 
 

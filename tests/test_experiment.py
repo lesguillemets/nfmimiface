@@ -82,3 +82,14 @@ def test_session_ids_are_numbered(experiment: Experiment) -> None:
     assert first is not None and second is not None
     assert first.id.endswith("-001") and second.id.endswith("-002")
     assert first.id.startswith(experiment.config.machine_name + "-")
+
+
+def test_next_is_closing(experiment: Experiment) -> None:
+    session = experiment.start_session(FRAME)
+    assert session is not None
+    feedbacks = []  # next_is_closing on each Feedback step
+    while not isinstance(session.step, Closing):
+        if isinstance(session.step, Feedback):
+            feedbacks.append(session.next_is_closing)
+        session.advance()
+    assert feedbacks == [False, True]

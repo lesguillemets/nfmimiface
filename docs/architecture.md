@@ -57,9 +57,11 @@ Step = Imitate(stimulus) | Feedback(trial: index into Session.trials) | Closing(
    (`crop_scale` × face height) for the whole session. The webcam is wide-angle, and the
    participant is assumed to stay roughly within the crop. No face: show a retry message.
 2. **`Imitate`:** the stimulus and the live, mirrored crop are shown side by side.
-   On 「完了」 (or a key), `session.capture(frame)` crops, analyses, scores and saves the
+   On 「この表情を撮影」 (or a key), `session.capture(frame)` crops, analyses, scores and saves the
    frame. No face: show a retry message; nothing is recorded.
 3. **`Feedback`:** shows `session.trials[step.trial]`: the face, the score and the message.
+   The button reads 「次へ」, or 「終了」 when the next step is `Closing`
+   (`session.next_is_closing`).
 4. Steps 2–3 repeat for each stimulus, then **`Closing`**.
 
 Frames are RGB and mirrored once, right after capture from the camera. The face crop is

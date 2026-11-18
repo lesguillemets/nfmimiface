@@ -76,7 +76,7 @@ class StartPage(Page):
 
 class ImitatePage(Page):
     def __init__(self, side: Side) -> None:
-        super().__init__("完了")
+        super().__init__("この表情を撮影")
         self.instruction = _label("instruction")
         self.stimulus = ImageView()
         self.live = ImageView()
@@ -84,7 +84,7 @@ class ImitatePage(Page):
         self.column.addWidget(self.instruction)
         self.column.addLayout(
             _side_by_side(
-                _captioned(self.stimulus, "お手本"), _captioned(self.live, "あなた"), side
+                _captioned(self.stimulus, "お手本"), _captioned(self.live, "あなたの表情"), side
             ),
             1,
         )
@@ -99,12 +99,15 @@ class ImitatePage(Page):
 
     def show_no_face(self) -> None:
         self.status.setText(
-            "顔が見つかりませんでした。顔がカメラに映るようにして、もう一度「完了」を押してください。"
+            "顔が見つかりませんでした。顔がカメラに映るようにして、もう一度撮影してください。"
         )
 
 
 class FeedbackPage(Page):
-    """The score counts up from 0; the message appears when it reaches the score."""
+    """The score counts up from 0; the message appears when it reaches the score.
+
+    The button is disabled while counting, so repeated presses cannot skip the result.
+    """
 
     COUNT_UP_MS = 800
 
@@ -119,7 +122,7 @@ class FeedbackPage(Page):
         self._count_up.setDuration(self.COUNT_UP_MS)
         self._count_up.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._count_up.valueChanged.connect(lambda value: self.show_score(float(value)))
-        self._count_up.finished.connect(lambda: self.message.setText(self._message_text))
+        self._count_up.finished.connect(self._show_message)
         self.column.addLayout(
             _side_by_side(
                 _captioned(self.stimulus, "お手本"), _captioned(self.face, "あなた"), side
@@ -130,16 +133,23 @@ class FeedbackPage(Page):
         self.column.addWidget(self.message)
         self.column.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-    def show_trial(self, trial: TrialResult) -> None:
+    def show_trial(self, trial: TrialResult, last: bool) -> None:
+        """`last`: the next page is the closing page, so the button says so."""
+        self.button.setText("終了" if last else "次へ")
         self.stimulus.set_image(trial.stimulus.image)
         self.face.set_image(trial.face)
         self._message_text = trial.message
         self.message.setText(" ")  # keeps the line's height, so nothing moves when it appears
+        self.button.setEnabled(False)
         self._count_up.stop()
         self._count_up.setStartValue(0.0)
         self._count_up.setEndValue(trial.score)
         self.show_score(0.0)
         self._count_up.start()
+
+    def _show_message(self) -> None:
+        self.message.setText(self._message_text)
+        self.button.setEnabled(True)
 
     def show_score(self, score: float) -> None:
         self.score.setText(
@@ -150,7 +160,7 @@ class FeedbackPage(Page):
 
 class ClosingPage(Page):
     def __init__(self, message: str) -> None:
-        super().__init__("おわる")
+        super().__init__("完了")
         self.column.addStretch(1)
         self.column.addWidget(_label("closing", message))
         self.column.addStretch(1)

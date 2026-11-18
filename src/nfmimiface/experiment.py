@@ -137,6 +137,11 @@ class Session:
     def step(self) -> Step:
         return self.steps[self._position]
 
+    @property
+    def next_is_closing(self) -> bool:
+        """Whether `advance()` leads to Closing. Not asked on Closing itself."""
+        return isinstance(self.steps[self._position + 1], Closing)
+
     def advance(self) -> None:
         """Move to the next step. Not called after Closing: the session just ends."""
         self._position += 1

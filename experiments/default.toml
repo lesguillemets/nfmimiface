@@ -1,8 +1,8 @@
-name = "表情まねチャレンジ"
+name = "表情模倣"
 machine_name = "pc1"           # prepended to session IDs to tell machines apart
 stimulus_side = "left"          # "left" | "right"
-crop_scale = 2.0                # crop size relative to the detected face box
-closing_message = "参加してくれてありがとうございました！"
+crop_scale = 2.5                # crop size relative to the detected face box
+closing_message = "ご参加いただきありがとうございました！"
 theme = "light"                 # optional: "light" (default) | "dark"; --theme overrides it
 
 [camera]
@@ -17,7 +17,7 @@ name = "cosine"
 # One trial per entry, in this order. Paths are relative to the project root.
 [[stimuli]]
 path = "stimuli/face01.jpg"
-instruction = "お手本の写真と同じ表情をしてみてください。"
+instruction = ""
 
 # The message with the highest min_score not above the score is shown.
 [[messages]]

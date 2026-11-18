@@ -90,7 +90,9 @@ class MainWindow(QMainWindow):
                 self._imitate_page.show_stimulus(stimulus)
                 self._stack.setCurrentWidget(self._imitate_page)
             case Feedback(trial=trial):
-                self._feedback_page.show_trial(self.session.trials[trial])
+                self._feedback_page.show_trial(
+                    self.session.trials[trial], last=self.session.next_is_closing
+                )
                 self._stack.setCurrentWidget(self._feedback_page)
             case Closing():
                 self._stack.setCurrentWidget(self._closing_page)
