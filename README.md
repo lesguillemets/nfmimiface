@@ -1,0 +1,137 @@
+# nfmimiface
+
+A facial expression imitation demo for an outreach event: a participant imitates a
+pictured face in front of a webcam, and the program scores how close the imitation is.
+See `project.md` for the requirements and `docs/` for the design.
+
+## Quickstart
+
+Commands are given for Linux (bash) and Windows (PowerShell). Run them all from the
+project root, the directory that contains `pyproject.toml`.
+
+### Requirements
+
+- Python 3.12 or newer (3.12 is what we test with)
+- A webcam
+- About 1 GB of disk space for the dependencies
+
+### 1. Get the code
+
+```bash
+git clone https://github.com/lesguillemets/nfmimiface.git
+cd nfmimiface
+```
+
+Alternatively, download the ZIP from GitHub and extract it.
+
+### 2. Download the face model
+
+The program needs mediapipe's face landmarker model at `data/face_landmarker.task`.
+It is not in the repository.
+
+Linux:
+
+```bash
+curl -L -o data/face_landmarker.task https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
+```
+
+Windows (`curl.exe` comes with Windows 10 and later):
+
+```powershell
+curl.exe -L -o data\face_landmarker.task https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
+```
+
+You can also open the URL in a browser and save the file as `data/face_landmarker.task`.
+
+### 3. Install
+
+Choose one of uv, pip or conda.
+
+The project must be installed in editable mode (`uv sync` does this; with pip, use
+`pip install -e .`). The program finds `experiments/`, `stimuli/`, `data/` and
+`results/` relative to the source tree, so a regular install will not work.
+
+#### uv
+
+```bash
+uv sync
+```
+
+uv creates `.venv/` and installs everything there. Prefix commands with `uv run`
+(for example `uv run nfmimiface`), and there is no need to activate the environment.
+
+#### pip (venv)
+
+Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+pip uninstall -y opencv-contrib-python
+pip install --force-reinstall --no-deps opencv-python-headless
+```
+
+Windows:
+
+```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e .
+pip uninstall -y opencv-contrib-python
+pip install --force-reinstall --no-deps opencv-python-headless
+```
+
+If PowerShell refuses to run `Activate.ps1`, run
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and try again.
+
+The last two `pip` lines are needed because mediapipe depends on `opencv-contrib-python`,
+which installs the same `cv2` module as `opencv-python-headless` and, on Linux, bundles a
+Qt that conflicts with PySide6. uv handles this automatically (see `[tool.uv]` in
+`pyproject.toml`); pip cannot, so we remove that package by hand and reinstall the
+headless build, whose files the removal deleted. Run these two lines again whenever
+you re-run `pip install -e .`.
+
+#### conda (Anaconda / Miniconda)
+
+Use conda only to provide Python; install the packages with pip, because mediapipe and
+PySide6 are taken from PyPI.
+
+```bash
+conda create -n nfmimiface python=3.12
+conda activate nfmimiface
+pip install -e .
+pip uninstall -y opencv-contrib-python
+pip install --force-reinstall --no-deps opencv-python-headless
+```
+
+On Windows, run these in the Anaconda Prompt. The last two lines are explained in the
+pip section above.
+
+### 4. Add the stimuli
+
+Put the face pictures to imitate in `stimuli/` and list them in the experiment file
+(next section). `stimuli/` is not version-controlled, so it is empty after cloning.
+
+### 5. Run
+
+```bash
+nfmimiface                                         # uses experiments/default.toml
+nfmimiface --experiment experiments/another.toml   # uses another experiment file
+```
+
+With uv, write `uv run nfmimiface` instead. With pip or conda, activate the
+environment first. Results are saved under `results/`, one subdirectory per day.
+
+Without a webcam, `--fake-camera IMAGE` shows a still image in place of the camera.
+
+### Files you will edit
+
+- `experiments/`: one TOML file per experiment set-up. `default.toml` is used when
+  `--experiment` is not given. It sets the experiment name, the machine name (used in
+  session IDs), the camera, the stimuli and their order, the scorer, the feedback
+  messages by score, and the form shown on the closing page. The comments in
+  `default.toml` describe each entry.
+- `stimuli/`: the pictures of the faces to imitate. Each picture should show one clearly
+  visible face; the program refuses to start if it finds no face in a stimulus. In the TOML, refer to them by paths relative to the project
+  root, for example `path = "stimuli/face01.jpg"`.
