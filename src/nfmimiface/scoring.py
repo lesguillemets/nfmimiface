@@ -31,7 +31,7 @@ computations; `blendshape_indices` converts between the two.
 Scores are kept unrounded; rounding is a display concern.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -196,21 +196,26 @@ EMOTIONS: dict[str, tuple[int, ...]] = {
 
 
 @register("emotions")
-def emotions() -> Scorer:
+def emotions(action_units: Mapping[str, Sequence[str]] | None = None) -> Scorer:
     """Weighted Jaccard of basic-emotion profiles.
 
     Each emotion's evidence is the mean intensity of its prototypical action units;
     the two faces' 6-emotion profiles are compared like in `overlap`. Only blendshapes
     used by some prototype matter: it judges *which emotion* is shown, and cannot tell
     apart faces outside the basic emotions (puffed cheeks, pouting, winking, ...).
+
+    `action_units` replaces entries of ACTION_UNITS, keyed by the action unit's number
+    as a string (TOML keys are strings), e.g. {"6": ["eyeSquintLeft", "eyeSquintRight"]}.
+    An empty list removes that action unit from the emotions.
     """
-    au_idx = [blendshape_indices(names) for names in ACTION_UNITS.values()]
-    au_pos = {au: i for i, au in enumerate(ACTION_UNITS)}
-    emo_idx = [np.array([au_pos[au] for au in aus]) for aus in EMOTIONS.values()]
+    overrides = {int(au): tuple(names) for au, names in (action_units or {}).items()}
+    mapping = ACTION_UNITS | overrides
+    au_idx = {au: blendshape_indices(names) for au, names in mapping.items() if names}
+    emotion_aus = [[au for au in aus if au in au_idx] for aus in EMOTIONS.values()]
 
     def profile(b: Blendshapes) -> npt.NDArray[np.float64]:
-        aus = np.array([b.array[idx].mean() for idx in au_idx])
-        return np.array([aus[idx].mean() for idx in emo_idx])
+        intensity = {au: b.array[idx].mean() for au, idx in au_idx.items()}
+        return np.array([np.mean([intensity[au] for au in aus]) for aus in emotion_aus])
 
     def score(participant: Blendshapes, target: Blendshapes) -> float:
         p, t = profile(participant), profile(target)

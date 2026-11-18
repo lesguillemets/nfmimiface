@@ -48,6 +48,11 @@ CANDIDATES: dict[str, ScorerConfig] = {
     "shape_strength": ScorerConfig("shape_strength"),
     "regions": ScorerConfig("regions"),
     "emotions": ScorerConfig("emotions"),
+    # cheekSquint stayed at 0 in two smiling photos while eyeSquint rose: let eyeSquint
+    # stand for the cheek raiser AU6 instead of the lid tightener AU7.
+    "emotions-eye6": ScorerConfig(
+        "emotions", {"action_units": {"6": ["eyeSquintLeft", "eyeSquintRight"], "7": []}}
+    ),
 }
 
 NEUTRAL = "neutral"

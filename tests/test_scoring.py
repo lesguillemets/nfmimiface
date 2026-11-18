@@ -52,3 +52,11 @@ def test_shape_strength_half_strength() -> None:
     b = random_blendshapes()
     scorer = make_scorer(ScorerConfig("shape_strength"))
     assert scorer(Blendshapes(b.array / 2), b) == pytest.approx(100 * 0.5**0.5)
+
+
+def test_emotions_override_removes_an_action_unit() -> None:
+    smile = Blendshapes([n.startswith("mouthSmile") for n in BLENDSHAPE_NAMES])
+    squinting = Blendshapes([n.startswith(("mouthSmile", "eyeSquint")) for n in BLENDSHAPE_NAMES])
+    assert make_scorer(ScorerConfig("emotions"))(squinting, smile) < 100
+    without_au7 = make_scorer(ScorerConfig("emotions", {"action_units": {"7": []}}))
+    assert without_au7(squinting, smile) == pytest.approx(100)

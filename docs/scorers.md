@@ -156,11 +156,26 @@ Limits:
   with squinted eyes and lowered brows shows "anger" evidence (0.46 for one smiling
   face). Since both faces go through the same mapping, a blendshape that never moves
   mostly rescales that emotion for both, rather than breaking the comparison. The
-  mapping is kept as published, so the scorer stays citable and free of ad-hoc choices.
+  default mapping is kept as published, so the scorer stays citable and free of ad-hoc
+  choices; the variant below tests the alternative.
 - Because evidence is a *mean*, one action unit alone counts partly (see "soft-AND"
   below).
 - Emotions overlap in their action units (surprise ⊂ fear), so related emotions score
   each other highly.
+
+**Variant `emotions-eye6`** (in `CANDIDATES`): the param `action_units` replaces entries
+of the mapping. Here `eyeSquint` stands for the cheek raiser AU6 and the lid tightener
+AU7 is removed, as if MediaPipe showed the cheek raise of a smile through the eyes:
+
+```toml
+[scorer]
+name = "emotions"
+params = { action_units = { "6" = ["eyeSquintLeft", "eyeSquintRight"], "7" = [] } }
+```
+
+It deviates from the paper on the strength of two photos, so it is a hypothesis, not a
+correction; whether `cheekSquint` really stays still on most faces decides between the
+two.
 
 ## Behaviour
 
@@ -195,6 +210,7 @@ delighted one with raised lip corners.
 | shape_strength | 56 | 24 | 0.88 | 88 |
 | regions | 38 | 19 | 0.89 | 68 |
 | emotions | 48 | 31 | 0.85 | 85 |
+| emotions-eye6 | 48 | 32 | 0.91 | 83 |
 
 Selected pairs (participant → target; "~m" = flipped image):
 
