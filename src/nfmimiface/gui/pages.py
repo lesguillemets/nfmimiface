@@ -4,11 +4,13 @@ Widgets get object names (title, caption, primary, ...) that theme.py styles.
 """
 
 from PySide6.QtCore import QEasingCurve, Qt, QVariantAnimation
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from nfmimiface.config import Side
+from nfmimiface.config import FormConfig, Side
 from nfmimiface.experiment import Stimulus, TrialResult
-from nfmimiface.gui.widgets import ImageView
+from nfmimiface.gui.widgets import ImageView, to_qimage
+from nfmimiface.images import qr_image
 
 
 class Page(QWidget):
@@ -159,9 +161,22 @@ class FeedbackPage(Page):
 
 
 class ClosingPage(Page):
-    def __init__(self, message: str) -> None:
+    """The closing message, and a QR code to the form if one is configured."""
+
+    def __init__(self, message: str, form: FormConfig | None) -> None:
         super().__init__("完了")
+        self.form = form
+        self.qr = QLabel()  # shown at its pixel size: no scaling, so modules stay sharp
         self.column.addStretch(1)
         self.column.addWidget(_label("closing", message))
+        if form is not None:
+            self.column.addSpacing(24)
+            self.column.addWidget(_label("caption", form.caption))
+            self.column.addWidget(self.qr, alignment=Qt.AlignmentFlag.AlignCenter)
         self.column.addStretch(1)
         self.column.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+    def show_session(self, session_id: str) -> None:
+        if self.form is not None:
+            image = qr_image(self.form.url_for(session_id))
+            self.qr.setPixmap(QPixmap.fromImage(to_qimage(image)))

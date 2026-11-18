@@ -44,6 +44,17 @@ class ScoreMessage:
 
 
 @dataclass(frozen=True)
+class FormConfig:
+    """A form shown as a QR code on the closing page."""
+
+    url: str  # "{session_id}" in it is replaced by the session ID
+    caption: str
+
+    def url_for(self, session_id: str) -> str:
+        return self.url.replace("{session_id}", session_id)
+
+
+@dataclass(frozen=True)
 class ExperimentConfig:
     name: str
     machine_name: str
@@ -55,6 +66,7 @@ class ExperimentConfig:
     stimuli: tuple[StimulusConfig, ...]
     messages: tuple[ScoreMessage, ...]
     theme: str = "light"  # a name in gui.theme.THEMES; `--theme` overrides it
+    form: FormConfig | None = None  # no QR code if None
 
 
 def load_config(path: Path) -> ExperimentConfig:
@@ -85,4 +97,5 @@ def load_config(path: Path) -> ExperimentConfig:
         stimuli=stimuli,
         messages=messages,
         theme=raw.get("theme", "light"),
+        form=FormConfig(**raw["form"]) if "form" in raw else None,
     )

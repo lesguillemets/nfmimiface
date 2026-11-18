@@ -10,6 +10,11 @@ index = 0
 width = 1280
 height = 720
 
+# Optional: the closing page shows a QR code to this URL, with {session_id} replaced.
+[form]
+url = "https://docs.google.com/forms/d/e/1FAIpQLSeQ7I4DjUewX1jnKp26iWJPWS2Av-pc8EbD6Ss1yX7rNFmvVA/viewform?usp=pp_url&entry.148188974={session_id}"
+caption = "フォームで入力"
+
 [scorer]
 name = "shape_strength"
 # params = { ... }

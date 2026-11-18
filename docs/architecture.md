@@ -11,7 +11,7 @@ plain Python and can be tested without a camera or a window.
 |---|---|
 | `constants.py` | Static paths: project root, model file, default experiment, results root |
 | `config.py` | `load_config()` → `ExperimentConfig` (plain data read from the TOML) |
-| `images.py` | `RGBImage` type; `load_rgb`, `save_png` (safe with non-ASCII paths on Windows) |
+| `images.py` | `RGBImage` type; `load_rgb`, `save_png` (safe with non-ASCII paths on Windows), `qr_image` |
 | `face.py` | `FaceAnalyzer` (mediapipe), `Blendshapes`, `Rect`, `crop_rect` |
 | `scoring.py` | `Scorer` type, `@register`, `make_scorer`, the scorers themselves |
 | `experiment.py` | `Experiment`, `Session`, steps (`Imitate`, `Feedback`, `Closing`), `TrialResult` |
@@ -64,7 +64,9 @@ Step = Imitate(stimulus) | Feedback(trial: index into Session.trials) | Closing(
 3. **`Feedback`:** shows `session.trials[step.trial]`: the face, the score and the message.
    The button reads 「次へ」, or 「終了」 when the next step is `Closing`
    (`session.next_is_closing`).
-4. Steps 2–3 repeat for each stimulus, then **`Closing`**.
+4. Steps 2–3 repeat for each stimulus, then **`Closing`**: the closing message and, if
+   `[form]` is set in the TOML, a QR code to the form URL with `{session_id}` replaced by
+   the session ID (e.g. a Google Form prefill link).
 
 Frames are RGB and mirrored once, right after capture from the camera. The face crop is
 therefore analysed and saved exactly as the participant saw it, so left/right
