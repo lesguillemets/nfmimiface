@@ -10,7 +10,7 @@ Select one in the experiment TOML:
 ```toml
 [scorer]
 name = "shape_strength"
-params = { strength_weight = 0.5, either_side = true }
+params = { strength_weight = 0.5 }
 ```
 
 Compare them with
@@ -30,12 +30,9 @@ Compare them with
    expressive target.
 4. **Ignore gaze.** Where the eyes look is not part of the expression, and the participant
    is looking at the screen anyway.
-5. **Either side is fine.** The participant sees themselves mirrored; whether they
-   imitate a one-sided expression (a smirk, a wink) like a mirror or anatomically should
-   not matter much.
-6. **Robust to measurement noise**: MediaPipe gives somewhat different values for the
+5. **Robust to measurement noise**: MediaPipe gives somewhat different values for the
    same face (see below).
-7. Nice to have: **explainable** (which part of the face to fix), and a score range that
+6. Nice to have: **explainable** (which part of the face to fix), and a score range that
    feels fair when displayed.
 
 ## What MediaPipe's blendshapes look like
@@ -47,12 +44,14 @@ imitation pairs, so only a sanity check):
   0.05; the rest sum to only about 0.2. A noise floor (dead zone) would barely matter.
 - **Gaze is large and arbitrary.** `eyeLook*` values reach 0.8 and flip with the image.
   With plain cosine, gaze alone drags a face against its own mirror image down to 45.
-- **Flipping the image swaps Left/Right names.** `Blendshapes.mirrored()` reproduces the
-  flipped image's values closely, so mirroring can be done on the numbers.
+- **Flipping the image swaps Left/Right names** (roughly). Participants imitate what
+  they see on the screen, and the app analyses the mirrored camera image, so the sides
+  of the participant's blendshapes match those of the stimulus. Mirroring is only ever
+  done on images, never on blendshape values.
 - **Measurement noise is substantial.** The flipped image is effectively a re-measurement
   of the same face, and some values move a lot (one surprised face: `browInnerUp` 0.13
-  vs 0.47). Even side-tolerant scorers give 75–90 for a face against its own flipped
-  copy, so ~100 is out of reach in practice.
+  vs 0.47). Even after swapping the sides back, a face scores only ~75 (`overlap`)
+  against its own flipped copy, so ~100 is out of reach in practice.
 - **`cheekSquint` hardly moves.** It stays at 0.000 in two broad smiles; the cheek
   raise of a genuine smile shows up as `eyeSquint`. `browDown` can be high (0.8) in a
   smile. MediaPipe's blendshapes "loosely correspond" to FACS action units
@@ -62,9 +61,6 @@ imitation pairs, so only a sanity check):
 ## Candidates
 
 Unless noted, `_neutral` and the gaze blendshapes (`scoring.NON_EXPRESSIVE`) are ignored.
-Every scorer accepts `either_side = true` (handled by `make_scorer`): the participant's
-blendshapes are also tried mirrored and the better score is kept. This satisfies (5)
-while keeping one-sided expressions meaningful (a wink still differs from a blink).
 
 ### `cosine` (current default): baseline
 
@@ -162,11 +158,8 @@ These are the most meaningful numbers here, because the ideal answer is known.
 | 1.5× strength | high | 99 | 100 | 100 | 70 | 84 | 69 | 70 |
 | mouth & jaw only | partial | 63 | 73 | 67 | 53 | 64 | 41 | 38 |
 | brows & eyes only | partial | 56 | 65 | 57 | 49 | 53 | 60 | 64 |
-| sides swapped | high | 73 | 93 | 91 | 74 (100*) | 93 | 73 | 100 |
 | gaze moved | 100 | 85 | 100 | 100 | 100 | 100 | 100 | 100 |
 | quiet face | 0 | 37 | 35 | 1 | 5 | 8 | 6 | 5 |
-
-\* with `either_side = true` (which gives 100 for any scorer here).
 
 ### Photos (`--mirror`)
 
@@ -181,7 +174,7 @@ delighted one with raised lip corners.
 | cosine | 53 | 34 | 0.75 | 73 |
 | cosine (no gaze) | 61 | 29 | 0.87 | 90 |
 | pearson | 51 | 16 | 0.86 | 88 |
-| overlap | 37 | 16 | 0.91 | 69 (77 either_side) |
+| overlap | 37 | 16 | 0.91 | 69 |
 | shape_strength | 56 | 24 | 0.88 | 88 |
 | regions | 38 | 19 | 0.89 | 68 |
 | emotions | 51 | 28 | 0.96 | 82 |
@@ -193,7 +186,7 @@ Selected pairs (participant → target; "~m" = flipped image):
 | smile1 → smile2 | 68 | 39 | 60 | 31 | 47 | same emotion, different smiles |
 | surp1 → surp2 | 39 | 28 | 38 | 41 | 44 | surp1 has raised lip corners |
 | smile2 → surp1 | 63 | 46 | 69 | 34 | 49 | the shared smile wins |
-| smile2~m → smile2 | 52 | 54 (75 either) | 78 | 52 | 83 | same face, flipped |
+| smile2~m → smile2 | 52 | 54 | 78 | 52 | 83 | same face, flipped |
 
 `emotions` separates the labels best, as expected since the labels *are* emotions;
 `regions` is the only one that ranks the surprise pair above smile→surprise, because
@@ -203,10 +196,9 @@ it weighs the raised brows as much as the mouth.
 
 - **Stimuli are basic emotions and "same feeling" is the point:** `emotions`, possibly
   with message thresholds around 30/50.
-- **Any stimuli, forgiving, easy to explain:** `shape_strength` (+ `either_side`). The
-  natural successor of the current cosine.
-- **Any stimuli, strict, simplest formula:** `overlap` (+ `either_side`), with low
-  message thresholds.
+- **Any stimuli, forgiving, easy to explain:** `shape_strength`. The natural successor
+  of the current cosine.
+- **Any stimuli, strict, simplest formula:** `overlap`, with low message thresholds.
 - **Want per-region feedback messages:** `regions`, after extending the scorer to return
   the breakdown.
 

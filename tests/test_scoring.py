@@ -48,14 +48,6 @@ def test_overlap_counts_intensity() -> None:
     assert make_scorer(ScorerConfig("overlap"))(half, b) == pytest.approx(50)
 
 
-def test_either_side_accepts_the_other_side() -> None:
-    left_smirk = Blendshapes([n == "mouthSmileLeft" for n in BLENDSHAPE_NAMES])
-    right_smirk = left_smirk.mirrored()
-    assert make_scorer(ScorerConfig("overlap"))(right_smirk, left_smirk) == 0
-    either = make_scorer(ScorerConfig("overlap", {"either_side": True}))
-    assert either(right_smirk, left_smirk) == pytest.approx(100)
-
-
 def test_shape_strength_half_strength() -> None:
     b = random_blendshapes()
     scorer = make_scorer(ScorerConfig("shape_strength"))

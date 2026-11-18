@@ -45,7 +45,6 @@ CANDIDATES: dict[str, ScorerConfig] = {
     "cosine-nogaze": ScorerConfig("cosine", {"exclude": NON_EXPRESSIVE}),
     "pearson": ScorerConfig("pearson"),
     "overlap": ScorerConfig("overlap"),
-    "overlap-either": ScorerConfig("overlap", {"either_side": True}),
     "shape_strength": ScorerConfig("shape_strength"),
     "regions": ScorerConfig("regions"),
     "emotions": ScorerConfig("emotions"),
@@ -82,7 +81,6 @@ EDITS: dict[str, tuple[Callable[[Blendshapes], Blendshapes], str]] = {
     "stronger": (lambda b: Blendshapes(np.minimum(b.array * 1.5, 1)), "high"),
     "mouth": (_only(REGIONS["mouth"] + REGIONS["jaw"]), "partial"),
     "upper": (_only(REGIONS["brows"] + REGIONS["eyes"]), "partial"),
-    "sides": (lambda b: b.mirrored(), "high"),
     "gaze": (_look_aside, "100"),
     "quiet": (_only(()), "0"),
 }

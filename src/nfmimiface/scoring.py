@@ -62,19 +62,9 @@ def register(name: str) -> Callable[[ScorerFactory], ScorerFactory]:
 
 
 def make_scorer(config: ScorerConfig) -> Scorer:
-    """The configured scorer. The extra param `either_side = true` makes any scorer
-    also try the participant's face mirrored and keep the better score, so imitating
-    a one-sided expression with either side of the face counts."""
     if config.name not in _REGISTRY:
         raise ValueError(f"unknown scorer {config.name!r}; available: {sorted(_REGISTRY)}")
-    params = dict(config.params)
-    either_side = params.pop("either_side", False)
-    scorer = _REGISTRY[config.name](**params)
-    if not either_side:
-        return scorer
-    return lambda participant, target: max(
-        scorer(participant, target), scorer(participant.mirrored(), target)
-    )
+    return _REGISTRY[config.name](**config.params)
 
 
 @register("cosine")
