@@ -130,7 +130,9 @@ class FeedbackPage(Page):
         self.column.addWidget(self.message)
         self.column.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-    def show_trial(self, trial: TrialResult) -> None:
+    def show_trial(self, trial: TrialResult, last: bool) -> None:
+        """`last`: the next page is the closing page, so the button says so."""
+        self.button.setText("終了" if last else "次へ")
         self.stimulus.set_image(trial.stimulus.image)
         self.face.set_image(trial.face)
         self._message_text = trial.message
