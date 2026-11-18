@@ -15,35 +15,16 @@ project root, the directory that contains `pyproject.toml`.
 - A webcam
 - About 1 GB of disk space for the dependencies
 
-### 1. Get the code
+### 1. Download the face model
 
-```bash
-git clone https://github.com/lesguillemets/nfmimiface.git
-cd nfmimiface
-```
+The program needs mediapipe's face landmarker model, which is not in the repository.
 
-Alternatively, download the ZIP from GitHub and extract it.
+1. Open <https://developers.google.com/edge/mediapipe/solutions/vision/face_landmarker>.
+2. In the "Models" section, download the FaceLandmarker model bundle (the "Latest"
+   link in the "Versions" column). The file is named `face_landmarker.task`.
+3. Put it at `data/face_landmarker.task` in the project directory.
 
-### 2. Download the face model
-
-The program needs mediapipe's face landmarker model at `data/face_landmarker.task`.
-It is not in the repository.
-
-Linux:
-
-```bash
-curl -L -o data/face_landmarker.task https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
-```
-
-Windows (`curl.exe` comes with Windows 10 and later):
-
-```powershell
-curl.exe -L -o data\face_landmarker.task https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
-```
-
-You can also open the URL in a browser and save the file as `data/face_landmarker.task`.
-
-### 3. Install
+### 2. Install
 
 Choose one of uv, pip or conda.
 
@@ -108,12 +89,12 @@ pip install --force-reinstall --no-deps opencv-python-headless
 On Windows, run these in the Anaconda Prompt. The last two lines are explained in the
 pip section above.
 
-### 4. Add the stimuli
+### 3. Add the stimuli
 
 Put the face pictures to imitate in `stimuli/` and list them in the experiment file
 (next section). `stimuli/` is not version-controlled, so it is empty after cloning.
 
-### 5. Run
+### 4. Run
 
 ```bash
 nfmimiface                                         # uses experiments/default.toml
