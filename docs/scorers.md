@@ -23,7 +23,9 @@ Compare them with
     uv run nfmimiface-live-score --img-path TARGET_IMAGE_OR_DIR [--scorer NAME ...]
 
 shows the target, the mirrored webcam image, and every candidate's score live
-(← / → switch targets in a directory).
+(← / → switch targets in a directory). With `--config EXPERIMENT_TOML` instead of
+`--img-path`, the target is the experiment's first stimulus and every scorer gets the
+TOML's `[scorer]` params (e.g. `include`), skipping those it does not take.
 
 ## What a good imitation score should do
 
