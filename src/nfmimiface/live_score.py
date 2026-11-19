@@ -1,7 +1,7 @@
 """Live scores of the webcam face against a target image, for trying out scorers.
 
-    uv run nfmimiface-live-score --img-path TARGET [--scorer NAME ...] [--camera N]
-    uv run nfmimiface-live-score --config TOML [--scorer NAME ...] [--camera N]
+    uv run nfmimiface-live-score --img-path TARGET [--scorer NAME ...] [--camera N] [--radar]
+    uv run nfmimiface-live-score --config TOML [--scorer NAME ...] [--camera N] [--radar]
 
 TARGET is an image, or a directory of images (← / → switch between them). Each
 `--scorer` NAME is shown with its default params (as a number and a bar); without any,
@@ -11,6 +11,9 @@ With --config, the target is the first stimulus of the experiment TOML, and each
 (every registered one without --scorer) gets the TOML's [scorer] params, minus those it
 does not take (printed at startup). The camera also comes from the TOML unless --camera
 is given.
+
+--radar adds a radar chart of the blendshapes (as in nfmimiface-radar): the axes are those
+the TOML's scorer params select, or all but NON_EXPRESSIVE without --config.
 
 The drop-down above the bars shows all of them or just one. As in the app, the webcam
 image is mirrored before analysis; unlike the app, the whole frame is analysed (no crop).
@@ -24,6 +27,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
 from PySide6.QtCore import QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QKeyEvent, QPainter, QPaintEvent
 from PySide6.QtWidgets import (
@@ -42,6 +47,7 @@ from nfmimiface.gui.camera import Camera, FrameSource, StillImage
 from nfmimiface.gui.theme import LIGHT, Theme, apply_theme
 from nfmimiface.gui.widgets import ImageView
 from nfmimiface.images import RGBImage, load_rgb
+from nfmimiface.radar import Radar, axis_names
 from nfmimiface.scoring import Scorer, accepted_params, make_scorer, scorer_names
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -107,6 +113,39 @@ class ScoreBars(QWidget):
             painter.drawRoundedRect(bar, 2, 2)
 
 
+class RadarCanvas(FigureCanvasQTAgg):
+    """A Radar on a Qt widget. Redrawing the whole chart is slow (~60 ms with 43 axes), so
+    the rest is drawn once and saved, and set_participant only redraws its polygon over it
+    (blitting)."""
+
+    def __init__(self, names: list[str]) -> None:
+        super().__init__(Figure())
+        self._radar = Radar(self.figure, names)
+        for artist in self._radar.participant_artists:
+            artist.set_animated(True)  # left out of full draws
+        self._background: Any = None
+        self.mpl_connect("draw_event", self._on_draw)
+
+    def set_target(self, values: Mapping[str, float]) -> None:
+        self._radar.set_target(values)
+        self.draw_idle()  # a full draw, which saves the new background
+
+    def set_participant(self, values: Mapping[str, float] | None) -> None:
+        self._radar.set_participant(values)
+        if self._background is not None:
+            self.restore_region(self._background)
+            self._draw_participant()
+            self.blit(self.figure.bbox)
+
+    def _on_draw(self, _event: object) -> None:
+        self._background = self.copy_from_bbox(self.figure.bbox)
+        self._draw_participant()
+
+    def _draw_participant(self) -> None:
+        for artist in self._radar.participant_artists:
+            self.figure.draw_artist(artist)
+
+
 class LiveWindow(QWidget):
     def __init__(
         self,
@@ -114,6 +153,7 @@ class LiveWindow(QWidget):
         scorers: dict[str, Scorer],
         analyzer: FaceAnalyzer,
         source: FrameSource,
+        radar_names: list[str] | None = None,  # no radar chart if None
     ) -> None:
         super().__init__()
         self._targets, self._analyzer = targets, analyzer
@@ -130,10 +170,15 @@ class LiveWindow(QWidget):
         images = QHBoxLayout()
         images.addWidget(self._target_view)
         images.addWidget(self._camera_view)
-        layout = QVBoxLayout(self)
-        layout.addLayout(images, stretch=1)
-        layout.addWidget(self._choice, alignment=Qt.AlignmentFlag.AlignLeft)
-        layout.addWidget(self._bars)
+        main = QVBoxLayout()
+        main.addLayout(images, stretch=1)
+        main.addWidget(self._choice, alignment=Qt.AlignmentFlag.AlignLeft)
+        main.addWidget(self._bars)
+        layout = QHBoxLayout(self)
+        layout.addLayout(main, stretch=2)
+        self._radar = None if radar_names is None else RadarCanvas(radar_names)
+        if self._radar is not None:  # to the right, over the whole height
+            layout.addWidget(self._radar, stretch=1)
 
         source.frame.connect(self._on_frame)
         timer = QTimer(self)
@@ -142,9 +187,11 @@ class LiveWindow(QWidget):
         self._show_target()
 
     def _show_target(self) -> None:
-        path, image, _ = self._targets[self._index]
+        path, image, blendshapes = self._targets[self._index]
         self._target_view.set_image(image)
         self.setWindowTitle(f"{path.name} ({self._index + 1}/{len(self._targets)})")
+        if self._radar is not None:
+            self._radar.set_target(blendshapes)
 
     def _choose(self, name: str) -> None:
         all_ = self._all_scorers
@@ -159,7 +206,10 @@ class LiveWindow(QWidget):
     def _update_scores(self) -> None:
         if self._frame is None:
             return
-        if (participant := self._analyzer.blendshapes(self._frame)) is None:
+        participant = self._analyzer.blendshapes(self._frame)
+        if self._radar is not None:
+            self._radar.set_participant(participant)  # hidden while there is no face
+        if participant is None:
             self._bars.set_scores(None)
             return
         target = self._targets[self._index][2]
@@ -206,6 +256,7 @@ def main() -> None:
     target.add_argument("--config", type=Path, help="experiment TOML (first stimulus, params)")
     parser.add_argument("--scorer", action="append", help="scorer name (repeatable)")
     parser.add_argument("--camera", type=int, help="camera index (default: TOML's, else 0)")
+    parser.add_argument("--radar", action="store_true", help="add a radar chart")
     parser.add_argument("--fake-camera", type=Path, metavar="IMAGE", help="IMAGE as the webcam")
     args = parser.parse_args()
 
@@ -213,10 +264,12 @@ def main() -> None:
         config = load_config(args.config)
         img_path = config.stimuli[0].resolved_path
         configs = with_params(args.scorer or scorer_names(), config.scorer.params)
+        radar_names = axis_names(config.scorer.params)
         camera = config.camera
     else:
         img_path = args.img_path
         configs = {n: ScorerConfig(n) for n in args.scorer} if args.scorer else CANDIDATES
+        radar_names = axis_names({})
         camera = CameraConfig()
     if args.camera is not None:
         camera = replace(camera, index=args.camera)
@@ -229,11 +282,11 @@ def main() -> None:
     scorers = {name: make_scorer(config) for name, config in configs.items()}
     source = StillImage(load_rgb(args.fake_camera)) if args.fake_camera else Camera(camera)
 
-    window = LiveWindow(targets, scorers, analyzer, source)
+    window = LiveWindow(targets, scorers, analyzer, source, radar_names if args.radar else None)
     app.aboutToQuit.connect(source.stop)
     app.aboutToQuit.connect(analyzer.close)
     source.start()
-    window.resize(1280, 720)
+    window.resize(1800 if args.radar else 1280, 720)
     window.show()
     sys.exit(app.exec())
 

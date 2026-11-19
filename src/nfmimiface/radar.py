@@ -17,6 +17,8 @@ from typing import Any, cast
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+from matplotlib.patches import Polygon
 from matplotlib.projections.polar import PolarAxes
 
 from nfmimiface.face import BLENDSHAPE_NAMES
@@ -24,6 +26,7 @@ from nfmimiface.scoring import NON_EXPRESSIVE
 
 TARGET_COLOR = "#2a78d6"  # blue
 PARTICIPANT_COLOR = "#eb6834"  # orange
+LABEL_ROOM = 1.3  # inches around the circle for the axis labels (the longest at 8pt)
 
 
 def axis_names(params: Mapping[str, Any]) -> list[str]:
@@ -34,38 +37,79 @@ def axis_names(params: Mapping[str, Any]) -> list[str]:
     return [n for n in BLENDSHAPE_NAMES if n not in exclude]
 
 
+class Radar:
+    """Radar chart of a stimulus and a participant on the axes `names` (0..1), drawn on
+    `fig`, leaving `top` inches above it for the legend and a title. Each set_* call
+    replaces one polygon (None hides it); the caller redraws."""
+
+    def __init__(self, fig: Figure, names: Sequence[str], top: float = 0.5) -> None:
+        self.names = list(names)
+        angles = np.linspace(0, 2 * np.pi, len(names), endpoint=False)
+        self._closed = np.append(angles, angles[0])  # repeat the first point to close it
+        ax = cast(PolarAxes, fig.add_subplot(projection="polar"))
+        self._fig, self._ax, self._top = fig, ax, top
+        self._fit()
+        fig.canvas.mpl_connect("resize_event", lambda _event: self._fit())
+        ax.set_theta_zero_location("N")
+        ax.set_theta_direction(-1)  # clockwise
+        ax.set_xticks(angles, [])
+        for theta, name in zip(angles, names, strict=True):
+            # Radial labels just outside the circle, kept upright on the left half.
+            degrees = 90 - np.degrees(theta)  # theta runs clockwise from the top
+            left = np.cos(np.radians(degrees)) < -1e-9
+            ax.text(
+                theta, 1.05, name, fontsize=8, va="center", ha="right" if left else "left",
+                rotation=degrees + 180 if left else degrees, rotation_mode="anchor",
+            )  # fmt: skip
+        ax.set_ylim(0, 1)
+        ax.set_yticks([0.25, 0.5, 0.75, 1.0], ["", "0.5", "", "1"], fontsize=8, color="gray")
+        ax.grid(color="lightgray", linewidth=0.5)
+        ax.spines["polar"].set_color("lightgray")
+        self._target = self._series(ax, "stimulus", TARGET_COLOR)
+        self._participant = self._series(ax, "participant", PARTICIPANT_COLOR)
+        fig.legend(loc="upper right")
+
+    def _fit(self) -> None:
+        """Center the circle in the figure, keeping LABEL_ROOM inches around it."""
+        w, h = self._fig.get_size_inches()
+        d = max(min(w, h - self._top) - 2 * LABEL_ROOM, 0.5)  # diameter
+        self._ax.set_position(((w - d) / 2 / w, (h - self._top - d) / 2 / h, d / w, d / h))
+
+    def _series(self, ax: PolarAxes, label: str, color: str) -> tuple[Line2D, Polygon]:
+        zeros = np.zeros_like(self._closed)
+        (line,) = ax.plot(self._closed, zeros, color=color, linewidth=2, label=label)
+        (fill,) = ax.fill(self._closed, zeros, color=color, alpha=0.15)
+        return line, fill
+
+    @property
+    def participant_artists(self) -> tuple[Line2D, Polygon]:
+        return self._participant
+
+    def set_target(self, values: Mapping[str, float] | None) -> None:
+        self._set(self._target, values)
+
+    def set_participant(self, values: Mapping[str, float] | None) -> None:
+        self._set(self._participant, values)
+
+    def _set(self, series: tuple[Line2D, Polygon], values: Mapping[str, float] | None) -> None:
+        line, fill = series
+        line.set_visible(values is not None)
+        fill.set_visible(values is not None)
+        if values is not None:
+            r = [values[n] for n in self.names]
+            r.append(r[0])
+            line.set_data(self._closed, r)
+            fill.set_xy(np.column_stack([self._closed, r]))
+
+
 def radar(
     names: Sequence[str], target: Mapping[str, float], participant: Mapping[str, float]
 ) -> Figure:
     """Radar chart of `target` and `participant` on the axes `names` (0..1)."""
-    angles = np.linspace(0, 2 * np.pi, len(names), endpoint=False)
-    closed = np.append(angles, angles[0])  # repeat the first point to close the polygon
     fig = plt.figure(figsize=(10, 10))
-    fig.subplots_adjust(left=0.15, right=0.85, top=0.78, bottom=0.12)  # room for the labels
-    ax = cast(PolarAxes, fig.add_subplot(projection="polar"))
-    for label, values, color in [
-        ("stimulus", target, TARGET_COLOR),
-        ("participant", participant, PARTICIPANT_COLOR),
-    ]:
-        r = [values[n] for n in names]
-        ax.plot(closed, [*r, r[0]], color=color, linewidth=2, label=label)
-        ax.fill(closed, [*r, r[0]], color=color, alpha=0.15)
-    ax.set_theta_zero_location("N")
-    ax.set_theta_direction(-1)  # clockwise
-    ax.set_xticks(angles, [])
-    for theta, name in zip(angles, names, strict=True):
-        # Radial labels just outside the circle, kept upright on the left half.
-        degrees = 90 - np.degrees(theta)  # theta runs clockwise from the top
-        left = np.cos(np.radians(degrees)) < -1e-9
-        ax.text(
-            theta, 1.05, name, fontsize=8, va="center", ha="right" if left else "left",
-            rotation=degrees + 180 if left else degrees, rotation_mode="anchor",
-        )  # fmt: skip
-    ax.set_ylim(0, 1)
-    ax.set_yticks([0.25, 0.5, 0.75, 1.0], ["", "0.5", "", "1"], fontsize=8, color="gray")
-    ax.grid(color="lightgray", linewidth=0.5)
-    ax.spines["polar"].set_color("lightgray")
-    fig.legend(loc="upper right")
+    chart = Radar(fig, names, top=0.9)  # room for a two-line title
+    chart.set_target(target)
+    chart.set_participant(participant)
     return fig
 
 
