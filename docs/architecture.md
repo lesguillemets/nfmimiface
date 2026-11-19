@@ -18,6 +18,7 @@ plain Python and can be tested without a camera or a window.
 | `show_blendshapes.py` | Command-line tool `nfmimiface-blendshapes` |
 | `compare_scorers.py` | Command-line tool `nfmimiface-compare-scorers`: scorers on labelled photos ([scorers.md](scorers.md)) |
 | `live_score.py` | `nfmimiface-live-score`: live scores of the webcam face against a target image |
+| `radar.py` | `nfmimiface-radar`: radar charts of a session JSON, participant vs stimulus per trial |
 | `app.py` | Entry point `nfmimiface`: loads everything (errors → dialog), opens the window |
 | `gui/camera.py` | `FrameSource` threads emitting mirrored RGB frames: `Camera`, `StillImage` (`--fake-camera`) |
 | `gui/widgets.py` | `ImageView` (aspect-preserving image), `to_qimage` |

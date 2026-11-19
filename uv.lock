@@ -487,6 +487,7 @@ name = "nfmimiface"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "matplotlib" },
     { name = "mediapipe" },
     { name = "opencv-python-headless" },
     { name = "pyside6" },
@@ -502,6 +503,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "matplotlib", specifier = ">=3.11.2" },
     { name = "mediapipe", specifier = ">=1.2.2" },
     { name = "opencv-python-headless", specifier = ">=5.0.0.93" },
     { name = "pyside6", specifier = ">=6.12.0" },
