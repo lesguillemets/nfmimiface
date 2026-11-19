@@ -35,6 +35,7 @@ computations; `blendshape_indices` converts between the two.
 Scores are kept unrounded; rounding is a display concern.
 """
 
+import inspect
 from collections.abc import Callable, Mapping, Sequence
 
 import numpy as np
@@ -65,10 +66,24 @@ def register(name: str) -> Callable[[ScorerFactory], ScorerFactory]:
     return decorator
 
 
+def _factory(name: str) -> ScorerFactory:
+    if name not in _REGISTRY:
+        raise ValueError(f"unknown scorer {name!r}; available: {sorted(_REGISTRY)}")
+    return _REGISTRY[name]
+
+
 def make_scorer(config: ScorerConfig) -> Scorer:
-    if config.name not in _REGISTRY:
-        raise ValueError(f"unknown scorer {config.name!r}; available: {sorted(_REGISTRY)}")
-    return _REGISTRY[config.name](**config.params)
+    return _factory(config.name)(**config.params)
+
+
+def scorer_names() -> list[str]:
+    """Names of the registered scorers, in registration order."""
+    return list(_REGISTRY)
+
+
+def accepted_params(name: str) -> set[str]:
+    """Names of the params the scorer `name` takes."""
+    return set(inspect.signature(_factory(name)).parameters)
 
 
 @register("cosine")

@@ -3,7 +3,7 @@ import pytest
 
 from nfmimiface.config import ScorerConfig
 from nfmimiface.face import BLENDSHAPE_NAMES, Blendshapes, blendshape_indices
-from nfmimiface.scoring import make_scorer
+from nfmimiface.scoring import accepted_params, make_scorer
 
 rng = np.random.default_rng(0)
 
@@ -70,3 +70,8 @@ def test_emotions_override_removes_an_action_unit() -> None:
     assert make_scorer(ScorerConfig("emotions"))(squinting, smile) < 100
     without_au7 = make_scorer(ScorerConfig("emotions", {"action_units": {"7": []}}))
     assert without_au7(squinting, smile) == pytest.approx(100)
+
+
+def test_accepted_params() -> None:
+    assert {"include", "exclude"} <= accepted_params("cosine")
+    assert "include" not in accepted_params("regions")

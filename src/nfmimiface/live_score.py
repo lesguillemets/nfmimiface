@@ -1,18 +1,28 @@
 """Live scores of the webcam face against a target image, for trying out scorers.
 
     uv run nfmimiface-live-score --img-path TARGET [--scorer NAME ...] [--camera N]
+    uv run nfmimiface-live-score --config TOML [--scorer NAME ...] [--camera N]
 
 TARGET is an image, or a directory of images (← / → switch between them). Each
 `--scorer` NAME is shown with its default params (as a number and a bar); without any,
-the candidates of nfmimiface-compare-scorers are shown. The drop-down above the bars
-shows all of them or just one. As in the app, the webcam image
-is mirrored before analysis; unlike the app, the whole frame is analysed (no crop).
+the candidates of nfmimiface-compare-scorers are shown.
+
+With --config, the target is the first stimulus of the experiment TOML, and each scorer
+(every registered one without --scorer) gets the TOML's [scorer] params, minus those it
+does not take (printed at startup). The camera also comes from the TOML unless --camera
+is given.
+
+The drop-down above the bars shows all of them or just one. As in the app, the webcam
+image is mirrored before analysis; unlike the app, the whole frame is analysed (no crop).
 Scores update ~10 times per second and are not smoothed.
 """
 
 import argparse
 import sys
+from collections.abc import Mapping
+from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 from PySide6.QtCore import QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QKeyEvent, QPainter, QPaintEvent
@@ -26,13 +36,13 @@ from PySide6.QtWidgets import (
 )
 
 from nfmimiface.compare_scorers import CANDIDATES
-from nfmimiface.config import CameraConfig, ScorerConfig
+from nfmimiface.config import CameraConfig, ScorerConfig, load_config
 from nfmimiface.face import Blendshapes, FaceAnalyzer
 from nfmimiface.gui.camera import Camera, FrameSource, StillImage
 from nfmimiface.gui.theme import LIGHT, Theme, apply_theme
 from nfmimiface.gui.widgets import ImageView
 from nfmimiface.images import RGBImage, load_rgb
-from nfmimiface.scoring import Scorer, make_scorer
+from nfmimiface.scoring import Scorer, accepted_params, make_scorer, scorer_names
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 ANALYSIS_INTERVAL_MS = 100
@@ -178,26 +188,46 @@ def load_targets(path: Path, analyzer: FaceAnalyzer) -> list[Target]:
     return targets
 
 
+def with_params(names: list[str], params: Mapping[str, Any]) -> dict[str, ScorerConfig]:
+    """A config per scorer name, with the `params` that scorer takes."""
+    configs: dict[str, ScorerConfig] = {}
+    for name in names:
+        accepted = accepted_params(name)
+        if ignored := sorted(params.keys() - accepted):
+            print(f"{name}: ignoring {', '.join(ignored)}")
+        configs[name] = ScorerConfig(name, {k: v for k, v in params.items() if k in accepted})
+    return configs
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Live scores of the webcam face vs a target.")
-    parser.add_argument("--img-path", type=Path, required=True, help="image or directory")
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--img-path", type=Path, help="image or directory")
+    target.add_argument("--config", type=Path, help="experiment TOML (first stimulus, params)")
     parser.add_argument("--scorer", action="append", help="scorer name (repeatable)")
-    parser.add_argument("--camera", type=int, default=0, help="camera index")
+    parser.add_argument("--camera", type=int, help="camera index (default: TOML's, else 0)")
     parser.add_argument("--fake-camera", type=Path, metavar="IMAGE", help="IMAGE as the webcam")
     args = parser.parse_args()
+
+    if args.config:
+        config = load_config(args.config)
+        img_path = config.stimuli[0].resolved_path
+        configs = with_params(args.scorer or scorer_names(), config.scorer.params)
+        camera = config.camera
+    else:
+        img_path = args.img_path
+        configs = {n: ScorerConfig(n) for n in args.scorer} if args.scorer else CANDIDATES
+        camera = CameraConfig()
+    if args.camera is not None:
+        camera = replace(camera, index=args.camera)
 
     app = QApplication(sys.argv)
     apply_theme(app)
     analyzer = FaceAnalyzer()
-    if not (targets := load_targets(args.img_path, analyzer)):
-        sys.exit(f"no usable target image in {args.img_path}")
-    configs = {n: ScorerConfig(n) for n in args.scorer} if args.scorer else CANDIDATES
+    if not (targets := load_targets(img_path, analyzer)):
+        sys.exit(f"no usable target image in {img_path}")
     scorers = {name: make_scorer(config) for name, config in configs.items()}
-    source = (
-        StillImage(load_rgb(args.fake_camera))
-        if args.fake_camera
-        else Camera(CameraConfig(index=args.camera))
-    )
+    source = StillImage(load_rgb(args.fake_camera)) if args.fake_camera else Camera(camera)
 
     window = LiveWindow(targets, scorers, analyzer, source)
     app.aboutToQuit.connect(source.stop)
